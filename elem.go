@@ -6,6 +6,8 @@ import (
 	"encoding/binary"
 	"io"
 	"time"
+
+	"github.com/mediocregopher/go.ebml/varint"
 )
 
 type Elem struct {
@@ -24,42 +26,13 @@ func RootElem(r io.Reader) *Elem {
 	}
 }
 
-func numPrecedingZeros(b byte) byte {
-	for i := byte(0); i < 8; i++ {
-		if b & 0x80 > 0 {
-			return i
-		}
-		b <<= 1
-	}
-	return 8
-}
-
-func (e *Elem) readVarInt() (int64, error) {
-	b, err := e.buf.ReadByte()
-	if err != nil {
-		return 0, err
-	}
-
-	rem := numPrecedingZeros(b)
-	ret := int64(b & (0xFF >> (rem + 1)))
-	for ; rem > 0; rem-- {
-		b, err = e.buf.ReadByte()
-		if err != nil {
-			return 0, err
-		}
-		ret = (ret << 8) | int64(b)
-	}
-
-	return ret, nil
-}
-
 func (e *Elem) Next() (*Elem, error) {
-	id, err := e.readVarInt()
+	id, err := varint.ReadVarInt(e.buf)
 	if err != nil {
 		return nil, err
 	}
 
-	size, err := e.readVarInt()
+	size, err := varint.ReadVarInt(e.buf)
 	if err != nil {
 		return nil, err
 	}
