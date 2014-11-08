@@ -12,59 +12,67 @@ import (
 	"unicode"
 )
 
-type TokenType int
+type tokentyp int
 
 const (
-	AlphaNum TokenType = iota
-	Control
-	QuotedString
-	Err
-	EOF
+	alphaNum tokentyp = iota
+	control
+	quotedString
+	err
+	eof
 )
 
-// Token represents a single set of characters which *could* be a valid token of
+// token represents a single set of characters which *could* be a valid token of
 // the given type
-type Token struct {
-	Type TokenType
-	Val  string
+type token struct {
+	typ tokentyp
+	val  string
 }
 
 // Returns the token's value as an error, or nil if the token is not of type
 // Err. If the token is nil returns io.EOF, since that is the ostensible meaning
-func (t *Token) AsError() error {
-	if t.Type == EOF {
+func (t *token) asError() error {
+	if t.typ == eof {
 		return io.EOF
-	} else if t.Type == Err {
-		return errors.New(t.Val)
+	} else if t.typ == err {
+		return errors.New(t.val)
 	}
 	return nil
+}
+
+func (t *token) String() string {
+	if err := t.asError(); err != nil {
+		return err.Error()
+	} else {
+		return fmt.Sprint(t.val)
+	}
 }
 
 var (
 	errInvalidUTF8 = errors.New("invalid utf8 character")
 )
 
-// Lexer reads through an io.Reader and emits Tokens from it.
-type Lexer struct {
+// lexer reads through an io.Reader and emits tokens from it.
+type lexer struct {
 	r      *bufio.Reader
 	outbuf *bytes.Buffer
-	ch     chan *Token
+	ch     chan *token
 }
 
-// NewLexer constructs a new Lexer struct and returns it. r is internally
+// newLexer constructs a new lexer struct and returns it. r is internally
 // wrapped with a bufio.Reader, unless it already is one. This will spawn a
 // go-routine which reads from r until it hits an error, at which point it will
 // end execution.
-func NewLexer(r io.Reader) *Lexer {
+func newLexer(r io.Reader) *lexer {
 	var br *bufio.Reader
 	var ok bool
 	if br, ok = r.(*bufio.Reader); !ok {
 		br = bufio.NewReader(r)
 	}
 
-	l := Lexer{
+	l := lexer{
 		r:      br,
-		ch:     make(chan *Token),
+		ch:     make(chan *token),
 		outbuf: bytes.NewBuffer(make([]byte, 0, 1024)),
 	}
 
@@ -73,7 +81,7 @@ func NewLexer(r io.Reader) *Lexer {
 	return &l
 }
 
-func (l *Lexer) spin() {
+func (l *lexer) spin() {
 	f := lexWhitespace
 	for {
 		f = f(l)
@@ -85,20 +93,20 @@ func (l *Lexer) spin() {
 
 // Returns the next available token. This method should not be called after any
 // Err or EOF tokens
-func (l *Lexer) Next() *Token {
+func (l *lexer) next() *token {
 	return <-l.ch
 }
 
-func (l *Lexer) emit(t TokenType) {
+func (l *lexer) emit(t tokentyp) {
 	str := l.outbuf.String()
-	l.ch <- &Token{
-		Type: t,
-		Val:  str,
+	l.ch <- &token{
+		typ: t,
+		val:  str,
 	}
 	l.outbuf.Reset()
 }
 
-func (l *Lexer) peek() (rune, error) {
+func (l *lexer) peek() (rune, error) {
 	r, err := l.readRune()
 	if err != nil {
 		return 0, err
@@ -109,7 +117,7 @@ func (l *Lexer) peek() (rune, error) {
 	return r, nil
 }
 
-func (l *Lexer) readRune() (rune, error) {
+func (l *lexer) readRune() (rune, error) {
 	r, i, err := l.r.ReadRune()
 	if err != nil {
 		return 0, err
@@ -119,26 +127,26 @@ func (l *Lexer) readRune() (rune, error) {
 	return r, nil
 }
 
-func (l *Lexer) err(err error) lexerFunc {
-	if err == io.EOF {
-		l.ch <- &Token{EOF, ""}
+func (l *lexer) err(errR error) lexerFunc {
+	if errR == io.EOF {
+		l.ch <- &token{eof, ""}
 	} else {
-		l.ch <- &Token{Err, err.Error()}
+		l.ch <- &token{err, errR.Error()}
 	}
 	close(l.ch)
 	return nil
 }
 
-func (l *Lexer) errf(format string, args ...interface{}) lexerFunc {
+func (l *lexer) errf(format string, args ...interface{}) lexerFunc {
 	s := fmt.Sprintf(format, args...)
-	l.ch <- &Token{Err, s}
+	l.ch <- &token{err, s}
 	close(l.ch)
 	return nil
 }
 
-type lexerFunc func(*Lexer) lexerFunc
+type lexerFunc func(*lexer) lexerFunc
 
-func lexWhitespace(l *Lexer) lexerFunc {
+func lexWhitespace(l *lexer) lexerFunc {
 	r, err := l.readRune()
 	if err != nil {
 		return l.err(err)
@@ -159,20 +167,20 @@ func lexWhitespace(l *Lexer) lexerFunc {
 	} else if unicode.IsLetter(r) || unicode.IsNumber(r) {
 		return lexAlphaNum
 	} else {
-		l.emit(Control)
+		l.emit(control)
 		return lexWhitespace
 	}
 }
 
-func lexComment(l *Lexer) lexerFunc {
+func lexComment(l *lexer) lexerFunc {
 	r, err := l.peek()
 	// There is a / in the buffer. If there's an error or not another / after, I
 	// guess it's a control character?
 	if err != nil {
-		l.emit(Control)
+		l.emit(control)
 		return l.err(err)
 	} else if r != '/' {
-		l.emit(Control)
+		l.emit(control)
 		return lexWhitespace
 	}
 
@@ -181,7 +189,7 @@ func lexComment(l *Lexer) lexerFunc {
 }
 
 // Reads until a newline, since everything after a // is tossed away
-func lexCommentRest(l *Lexer) lexerFunc {
+func lexCommentRest(l *lexer) lexerFunc {
 	r, err := l.readRune()
 	if err != nil {
 		return l.err(err)
@@ -193,7 +201,7 @@ func lexCommentRest(l *Lexer) lexerFunc {
 	return lexCommentRest
 }
 
-func lexAlphaNum(l *Lexer) lexerFunc {
+func lexAlphaNum(l *lexer) lexerFunc {
 	r, err := l.peek()
 	if err != nil {
 		return l.err(err)
@@ -207,12 +215,12 @@ func lexAlphaNum(l *Lexer) lexerFunc {
 		l.outbuf.WriteRune(r)
 		return lexAlphaNum
 	}
-	l.emit(AlphaNum)
+	l.emit(alphaNum)
 
 	return lexWhitespace
 }
 
-func lexColon(l *Lexer) lexerFunc {
+func lexColon(l *lexer) lexerFunc {
 	r, err := l.peek()
 	if err != nil {
 		return l.err(err)
@@ -223,15 +231,15 @@ func lexColon(l *Lexer) lexerFunc {
 		l.outbuf.WriteRune(r)
 	}
 
-	l.emit(Control)
+	l.emit(control)
 
 	return lexWhitespace
 }
 
-func lexQuotedString(l *Lexer) lexerFunc {
+func lexQuotedString(l *lexer) lexerFunc {
 	r, err := l.readRune()
 	if err != nil {
-		l.emit(QuotedString)
+		l.emit(quotedString)
 		return l.err(err)
 	}
 	l.outbuf.WriteRune(r)
@@ -239,12 +247,12 @@ func lexQuotedString(l *Lexer) lexerFunc {
 	if r == '\\' {
 		r, err := l.readRune()
 		if err != nil {
-			l.emit(QuotedString)
+			l.emit(quotedString)
 			return l.err(err)
 		}
 		l.outbuf.WriteRune(r)
 	} else if r == '"' {
-		l.emit(QuotedString)
+		l.emit(quotedString)
 		return lexWhitespace
 	}
 

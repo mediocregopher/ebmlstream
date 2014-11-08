@@ -6,7 +6,7 @@ import (
 )
 
 // I'm being lazy and just doing a single giant fucking string. yolo
-func TestLexer(t *T) {
+func Testlexer(t *T) {
 	testStr := `
 		define types {
 			bool := uint [ range:0..1; ]
@@ -22,82 +22,82 @@ func TestLexer(t *T) {
 			Language := 22b59c string [ def:"eng"; range:32..126; ]
 	`
 
-	output := []Token{
-		{AlphaNum, "define"},
-		{AlphaNum, "types"},
-		{Control,  "{"},
+	output := []token{
+		{alphaNum, "define"},
+		{alphaNum, "types"},
+		{control,  "{"},
 
-		{AlphaNum, "bool"},
-		{Control, ":="},
-		{AlphaNum, "uint"},
-		{Control, "["},
-		{AlphaNum, "range"},
-		{Control, ":"},
-		{AlphaNum, "0..1"},
-		{Control, ";"},
-		{Control, "]"},
+		{alphaNum, "bool"},
+		{control, ":="},
+		{alphaNum, "uint"},
+		{control, "["},
+		{alphaNum, "range"},
+		{control, ":"},
+		{alphaNum, "0..1"},
+		{control, ";"},
+		{control, "]"},
 
-		{AlphaNum, "ascii"},
-		{Control, ":="},
-		{AlphaNum, "string"},
-		{Control, "["},
-		{AlphaNum, "range"},
-		{Control, ":"},
-		{AlphaNum, "32..126"},
-		{Control, ";"},
-		{Control, "]"},
+		{alphaNum, "ascii"},
+		{control, ":="},
+		{alphaNum, "string"},
+		{control, "["},
+		{alphaNum, "range"},
+		{control, ":"},
+		{alphaNum, "32..126"},
+		{control, ";"},
+		{control, "]"},
 		
-		{Control, "}"},
+		{control, "}"},
 
-		{AlphaNum, "define"},
-		{AlphaNum, "elements"},
-		{Control, "{"},
+		{alphaNum, "define"},
+		{alphaNum, "elements"},
+		{control, "{"},
 
-		{AlphaNum, "TimecodeScale"},
-		{Control, ":="},
-		{AlphaNum, "2ad7b1"},
-		{AlphaNum, "uint"},
-		{Control, "["},
-		{AlphaNum, "def"},
-		{Control, ":"},
-		{AlphaNum, "1000000"},
-		{Control, ";"},
-		{Control, "]"},
+		{alphaNum, "TimecodeScale"},
+		{control, ":="},
+		{alphaNum, "2ad7b1"},
+		{alphaNum, "uint"},
+		{control, "["},
+		{alphaNum, "def"},
+		{control, ":"},
+		{alphaNum, "1000000"},
+		{control, ";"},
+		{control, "]"},
 
-		{AlphaNum, "Duration"},
-		{Control, ":="},
-		{AlphaNum, "4489"},
-		{AlphaNum, "float"},
-		{Control, "["},
-		{AlphaNum, "range"},
-		{Control, ":"},
-		{Control, ">"},
-		{AlphaNum, "0.0"},
-		{Control, ";"},
-		{Control, "]"},
+		{alphaNum, "Duration"},
+		{control, ":="},
+		{alphaNum, "4489"},
+		{alphaNum, "float"},
+		{control, "["},
+		{alphaNum, "range"},
+		{control, ":"},
+		{control, ">"},
+		{alphaNum, "0.0"},
+		{control, ";"},
+		{control, "]"},
 
-		{AlphaNum, "Language"},
-		{Control, ":="},
-		{AlphaNum, "22b59c"},
-		{AlphaNum, "string"},
-		{Control, "["},
-		{AlphaNum, "def"},
-		{Control, ":"},
-		{QuotedString, "\"eng\""},
-		{Control, ";"},
-		{AlphaNum, "range"},
-		{Control, ":"},
-		{AlphaNum, "32..126"},
-		{Control, ";"},
-		{Control, "]"},
-		{EOF, ""},
+		{alphaNum, "Language"},
+		{control, ":="},
+		{alphaNum, "22b59c"},
+		{alphaNum, "string"},
+		{control, "["},
+		{alphaNum, "def"},
+		{control, ":"},
+		{quotedString, "\"eng\""},
+		{control, ";"},
+		{alphaNum, "range"},
+		{control, ":"},
+		{alphaNum, "32..126"},
+		{control, ";"},
+		{control, "]"},
+		{eof, ""},
 	}
 
 	buf := bytes.NewBufferString(testStr)
-	l := NewLexer(buf)
+	l := newLexer(buf)
 
 	for i := range output {
-		tok := l.Next()
+		tok := l.next()
 		t.Logf("Checking for %#v", output[i])
 		if *tok != output[i] {
 			t.Fatalf("Found %#v instead of %#v", *tok, output[i])
