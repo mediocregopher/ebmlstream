@@ -156,7 +156,7 @@ func lexWhitespace(l *Lexer) lexerFunc {
 		return lexColon
 	} else if r == '"' {
 		return lexQuotedString
-	} else if unicode.IsLetter(r) && unicode.IsNumber(r) {
+	} else if unicode.IsLetter(r) || unicode.IsNumber(r) {
 		return lexAlphaNum
 	} else {
 		l.emit(Control)
@@ -220,8 +220,10 @@ func lexColon(l *Lexer) lexerFunc {
 
 	if r == '=' {
 		l.readRune()
-		l.emit(Control)
+		l.outbuf.WriteRune(r)
 	}
+
+	l.emit(Control)
 
 	return lexWhitespace
 }
@@ -242,6 +244,7 @@ func lexQuotedString(l *Lexer) lexerFunc {
 		}
 		l.outbuf.WriteRune(r)
 	} else if r == '"' {
+		l.emit(QuotedString)
 		return lexWhitespace
 	}
 
