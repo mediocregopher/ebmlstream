@@ -43,6 +43,7 @@ type tplElement struct {
 	kids []tplElement
 	def  []byte
 	card
+	ranges *rangeParam
 }
 
 // Parser is generated from an edtd specification. It will read in streams of
@@ -78,6 +79,8 @@ var (
 	assignTok    = token{control,  ":="}
 	openCurlyTok = token{control, "{"}
 	colonTok     = token{control, ":"}
+	semiColonTok = token{control, ";"}
+	commaTok     = token{control, ","}
 )
 
 // Pulls the next token from the lexer and checks if it matches any of the
@@ -123,9 +126,11 @@ func parseAsRoot(r io.Reader) (elementIndex, error) {
 
 	switch defWhat.val {
 	case "elements":
-		parseElements(lex, m)
+		if _, err := parseElements(lex, m); err != nil {
+			return nil, err
+		}
 	}
-	return nil, nil // TODO obviously take this out
+	return m, nil
 }
 
 func parseElements(lex *lexer, m elementIndex) ([]tplElement, error) {
@@ -185,21 +190,52 @@ func parseElement(lex *lexer, m elementIndex) (tplElement, error, bool) {
 		typ:  typ,
 		name: nameTok.val,
 	}
+	m[elem.id] = &elem
 
 	controlTok, err := expectType(lex, control)
 	if err != nil {
 		return elem, err, false
 	}
 
-	// TODO parse params
-
-	if controlTok.val != ";" {
-		return elem, fmt.Errorf("found unexpected '%s'", controlTok), false
+	// This gets a bit hairy.
+	// * If the control character is a ; the element is done
+	// * If it is a [ then there are parameters to read
+	// * There are then child elements after a { if-and-only-if the element is a
+	//   container
+	if controlTok.val == ";" {
+		return elem, nil, false
+	} else if controlTok.val == "[" {
+		if err := parseParams(lex, &elem); err != nil {
+			return elem, err, false
+		}
+	} else if elem.typ != Container {
+		return elem, fmt.Errorf("unexpected token '%s'", controlTok.val), false
 	}
 
-	// TODO children
+	if elem.typ != Container {
+		return elem, nil, false
+	}
 
-	m[elem.id] = &elem
+	// if controlTok was just a [ then we expect there to be a { afterwards
+	if elem.typ == Container && controlTok.val != "{" {
+		if controlTok, err = expectType(lex, control); err != nil {
+			return elem, err, false
+		}
+		if controlTok.val != "{" {
+			return elem, fmt.Errorf("unexpected token '%s'", controlTok.val), false
+		}
+	}
+
+	kids, err := parseElements(lex, m)
+	if err != nil {
+		return elem, err, false
+	}
+	elem.kids = kids
+
+	if elem.typ == Container && elem.kids == nil {
+		elem.kids = make([]tplElement, 0)
+	}
+
 	return elem, nil, false
 }
 
@@ -234,28 +270,78 @@ func strToType(s string) (Type, error) {
 }
 
 func parseParams(lex *lexer, elem *tplElement) error {
-	pnameTok, err := expectType(lex, alphaNum)
-	if err != nil {
-		return err
+	for {
+		err, done := parseParam(lex, elem)
+		if err != nil {
+			return nil
+		} else if done {
+			return nil
+		}
+	}
+}
+
+// Reads a single parameter for an element and parses it, modifying the element
+// as needed. Returns an error, and boolean which will be true if the closing
+// bracked has been reached
+func parseParam(lex *lexer, elem *tplElement) (error, bool) {
+	pnameTok := lex.next()
+	if err := pnameTok.asError(); err != nil {
+		return err, false
+	} else if pnameTok.typ == control && pnameTok.val == "]" {
+		return nil, true
+	} else if pnameTok.typ != alphaNum {
+		return fmt.Errorf("Unknown param field '%s'", pnameTok.val), false
 	}
 
-	if _, err = expect(lex, &colonTok); err != nil {
-		return err
+	if _, err := expect(lex, &colonTok); err != nil {
+		return err, false
 	}
 
 	pvalTok, err := expectType(lex, alphaNum, quotedString)
 	if err != nil {
-		return err
+		return err, false
 	}
 
 	switch pnameTok.val {
 	case "card":
-		return parseCardParam(lex, elem, pvalTok)
+		if err := parseCardParam(lex, elem, pvalTok); err != nil {
+			return err, false
+		}
+		if _, err := expect(lex, &semiColonTok); err != nil {
+			return err, false
+		}
 	case "def":
-		return parseDefParam(lex, elem, pvalTok)
+		if err := parseDefParam(lex, elem, pvalTok); err != nil {
+			return err, false
+		}
+		if _, err := expect(lex, &semiColonTok); err != nil {
+			return err, false
+		}
+	case "range":
+		// Ranges can have multiple values, each separated by a comma
+		rangeToks := append(make([]*token, 0, 2), pvalTok)
+		for {
+			controlTok, err := expect(lex, &semiColonTok, &commaTok)
+			if err != nil {
+				return err, false
+			}
+			if controlTok.val == ";" {
+				break
+			}
+			pvalTok, err = expectType(lex, alphaNum)
+			if err != nil {
+				return err, false
+			}
+			rangeToks = append(rangeToks, pvalTok)
+		}
+		rangeParams, err := parseRangeParams(elem.typ, rangeToks)
+		if err != nil {
+			return err, false
+		}
+		elem.ranges = rangeParams
 	}
 
-	return nil
+	return nil, false
 }
 
 func parseCardParam(lex *lexer, elem *tplElement, pvalTok *token) error {

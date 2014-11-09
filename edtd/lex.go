@@ -202,16 +202,25 @@ func lexCommentRest(l *lexer) lexerFunc {
 	return lexCommentRest
 }
 
+// Underscore is allowed by the spec, others aren't but it's convenient to have
+// here because it's used in places like range and decimal numbers where it acts
+// as part of a single thing
+var allowedAlphaNum = map[rune]bool{
+	'_': true,
+	'-': true,
+	'.': true,
+	'>': true,
+	'<': true,
+	'=': true,
+}
+
 func lexAlphaNum(l *lexer) lexerFunc {
 	r, err := l.peek()
 	if err != nil {
 		return l.err(err)
 	}
 
-	// Underscore is allowed by the spec, . isn't but it's convenient to have
-	// here because it's used in places like range and decimal numbers where it
-	// acts as part of a single thing
-	if r == '_' || r == '.' || unicode.IsLetter(r) || unicode.IsNumber(r) {
+	if allowedAlphaNum[r] || unicode.IsLetter(r) || unicode.IsNumber(r) {
 		l.readRune()
 		l.outbuf.WriteRune(r)
 		return lexAlphaNum
