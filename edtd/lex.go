@@ -12,6 +12,7 @@ import (
 	"unicode"
 )
 
+// TODO tokenTyp
 type tokentyp int
 
 const (
