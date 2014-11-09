@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	. "testing"
+	
+	"github.com/mediocregopher/go.ebml/varint"
 )
 
 func sb(bs ...byte) string {
@@ -79,13 +81,13 @@ func TestFile1(t *T) {
 
 	e := RootElem(f)
 
-	if id, err := e.readVarInt(); err != nil {
+	if id, err := varint.ReadVarInt(e.buf); err != nil {
 		t.Fatal(err)
 	} else if id != 0x0a45dfa3 {
 		t.Fatalf("id isn't right: %x", id)
 	}
 
-	if size, err := e.readVarInt(); err != nil {
+	if size, err := varint.ReadVarInt(e.buf); err != nil {
 		t.Fatal(err)
 	} else if size != 0x23 {
 		t.Fatalf("id isn't right: %x", size)
