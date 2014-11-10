@@ -11,7 +11,7 @@ import (
 )
 
 type Elem struct {
-	r io.Reader
+	r   io.Reader
 	buf *bufio.Reader
 
 	Id   int64

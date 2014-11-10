@@ -8,11 +8,12 @@ import (
 	"io"
 	"strconv"
 	"strings"
-	
+
 	"github.com/mediocregopher/go.ebml/varint"
 )
 
 type Type int
+
 const (
 	Int Type = iota
 	Uint
@@ -24,6 +25,7 @@ const (
 )
 
 type card int
+
 const (
 	zeroOrOnce card = iota
 	zeroOrMore
@@ -76,7 +78,7 @@ var implicitHeader = `
 var (
 	defineTok    = token{alphaNum, "define"}
 	elementsTok  = token{alphaNum, "elements"}
-	assignTok    = token{control,  ":="}
+	assignTok    = token{control, ":="}
 	openCurlyTok = token{control, "{"}
 	colonTok     = token{control, ":"}
 	semiColonTok = token{control, ";"}
@@ -110,7 +112,7 @@ func expectType(lex *lexer, typ ...tokentyp) (*token, error) {
 func parseAsRoot(r io.Reader) (elementIndex, error) {
 	lex := newLexer(r)
 	m := elementIndex{}
-	
+
 	if _, err := expect(lex, &defineTok); err != nil {
 		return nil, err
 	}

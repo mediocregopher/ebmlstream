@@ -11,7 +11,7 @@ type rangeParam struct {
 	loweri, upperi   int64
 	lowerui, upperui uint64
 	lowerf, upperf   float64
-	exLower, exUpper  bool // exclusive, only applies for float checking
+	exLower, exUpper bool // exclusive, only applies for float checking
 
 	more *rangeParam
 }
@@ -101,7 +101,7 @@ func parseUintRange(typ Type, r *token) (*rangeParam, error) {
 }
 
 func parseFloatRange(typ Type, r *token) (*rangeParam, error) {
-	lower, upper := -1 * math.MaxFloat64, math.MaxFloat64
+	lower, upper := -1*math.MaxFloat64, math.MaxFloat64
 	var greaterThan, lessThan, equalTo bool
 	var i int
 

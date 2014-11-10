@@ -2,8 +2,8 @@ package varint
 
 import (
 	"bytes"
-	. "testing"
 	"github.com/stretchr/testify/assert"
+	. "testing"
 )
 
 func TestNumPrecedingZeros(t *T) {

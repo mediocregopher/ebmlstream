@@ -14,7 +14,7 @@ import (
 
 func numPrecedingZeros(b byte) byte {
 	for i := byte(0); i < 8; i++ {
-		if b & 0x80 > 0 {
+		if b&0x80 > 0 {
 			return i
 		}
 		b <<= 1

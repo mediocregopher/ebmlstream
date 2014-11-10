@@ -27,7 +27,7 @@ const (
 // the given type
 type token struct {
 	typ tokentyp
-	val  string
+	val string
 }
 
 // Returns the token's value as an error, or nil if the token is not of type
@@ -102,7 +102,7 @@ func (l *lexer) emit(t tokentyp) {
 	str := l.outbuf.String()
 	l.ch <- &token{
 		typ: t,
-		val:  str,
+		val: str,
 	}
 	l.outbuf.Reset()
 }

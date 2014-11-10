@@ -2,8 +2,8 @@ package edtd
 
 import (
 	"bytes"
-	. "testing"
 	"github.com/stretchr/testify/assert"
+	. "testing"
 )
 
 // I'm being lazy and just doing a single giant fucking string. yolo
@@ -26,7 +26,7 @@ func TestLexer(t *T) {
 	output := []token{
 		{alphaNum, "define"},
 		{alphaNum, "types"},
-		{control,  "{"},
+		{control, "{"},
 
 		{alphaNum, "bool"},
 		{control, ":="},
@@ -47,7 +47,7 @@ func TestLexer(t *T) {
 		{alphaNum, "32..126"},
 		{control, ";"},
 		{control, "]"},
-		
+
 		{control, "}"},
 
 		{alphaNum, "define"},

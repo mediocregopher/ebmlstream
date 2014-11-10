@@ -2,11 +2,11 @@ package ebml
 
 import (
 	"bytes"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"os"
 	. "testing"
-	"github.com/stretchr/testify/assert"
-	
+
 	"github.com/mediocregopher/go.ebml/varint"
 )
 
