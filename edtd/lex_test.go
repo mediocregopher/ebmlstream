@@ -3,10 +3,11 @@ package edtd
 import (
 	"bytes"
 	. "testing"
+	"github.com/stretchr/testify/assert"
 )
 
 // I'm being lazy and just doing a single giant fucking string. yolo
-func Testlexer(t *T) {
+func TestLexer(t *T) {
 	testStr := `
 		define types {
 			bool := uint [ range:0..1; ]
@@ -95,12 +96,9 @@ func Testlexer(t *T) {
 
 	buf := bytes.NewBufferString(testStr)
 	l := newLexer(buf)
-
+	assert := assert.New(t)
 	for i := range output {
 		tok := l.next()
-		t.Logf("Checking for %#v", output[i])
-		if *tok != output[i] {
-			t.Fatalf("Found %#v instead of %#v", *tok, output[i])
-		}
+		assert.Equal(output[i], *tok, "index: %d", i)
 	}
 }

@@ -1,2 +1,4 @@
 ---
 path: github.com/mediocregopher/go.ebml
+deps:
+    - loc: github.com/stretchr/testify

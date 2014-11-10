@@ -3,6 +3,7 @@ package varint
 import (
 	"bytes"
 	. "testing"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNumPrecedingZeros(t *T) {
@@ -18,10 +19,9 @@ func TestNumPrecedingZeros(t *T) {
 		0x00: 8,
 	}
 
+	assert := assert.New(t)
 	for in, out := range m {
-		if n := numPrecedingZeros(in); n != out {
-			t.Fatalf("(%x) %d != %d", in, n, out)
-		}
+		assert.Equal(out, numPrecedingZeros(in), "input: %x", in)
 	}
 }
 
@@ -42,13 +42,10 @@ func TestReadVarInt(t *T) {
 		sb(0x01, 0x41, 0x21, 0x12, 0x34, 0x56, 0x78, 0x9a): 0x4121123456789a,
 	}
 
+	assert := assert.New(t)
 	for in, out := range m {
 		i, err := ReadVarInt(bytes.NewBuffer([]byte(in)))
-		if err != nil {
-			t.Fatal(err)
-		}
-		if i != out {
-			t.Fatalf("(%x) %d != %d", in, i, out)
-		}
+		assert.Nil(err, "input: %x", in)
+		assert.Equal(out, i, "input: %x", in)
 	}
 }

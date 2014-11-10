@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	. "testing"
+	"github.com/stretchr/testify/assert"
 	
 	"github.com/mediocregopher/go.ebml/varint"
 )
@@ -22,26 +23,19 @@ func TestIntElem(t *T) {
 		sb(0x80, 0x82, 0x02, 0x01):       0x0201,
 		sb(0x80, 0x83, 0x03, 0x02, 0x01): 0x030201,
 	}
+	assert := assert.New(t)
 	for in, out := range m {
 		b := []byte(in)
 		e, err := RootElem(bytes.NewBuffer(b)).Next()
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.Nil(err, "input: %x", in)
 
 		i, err := e.Int()
-		if err != nil {
-			t.Fatal(err)
-		} else if i != out {
-			t.Fatalf("(%x) %x != %x", in, i, out)
-		}
+		assert.Nil(err, "input: %x", in)
+		assert.Exactly(out, i, "input: %x", in)
 
 		ui, err := e.Uint()
-		if err != nil {
-			t.Fatal(err)
-		} else if ui != uint64(out) {
-			t.Fatalf("(%x) %x != %x", in, ui, out)
-		}
+		assert.Nil(err, "input: %x", in)
+		assert.Exactly(uint64(out), ui, "input: %x", in)
 	}
 }
 
@@ -51,19 +45,15 @@ func TestStringElem(t *T) {
 		sb(0x80, 0x83, 'f', 'o', 'o'):       "foo",
 		sb(0x80, 0x85, 'f', 'o', 'o', 0, 0): "foo",
 	}
+	assert := assert.New(t)
 	for in, out := range m {
 		b := []byte(in)
 		e, err := RootElem(bytes.NewBuffer(b)).Next()
-		if err != nil {
-			t.Fatal(err)
-		}
+		assert.Nil(err, "input: %x", in)
 
 		i, err := e.String()
-		if err != nil {
-			t.Fatal(err)
-		} else if i != out {
-			t.Fatalf("(%q) %q != %q", in, i, out)
-		}
+		assert.Nil(err, "input: %x", in)
+		assert.Equal(out, i, "input: %x", in)
 	}
 }
 
@@ -78,19 +68,14 @@ func getTestFile(t *T) io.ReadCloser {
 func TestFile1(t *T) {
 	f := getTestFile(t)
 	defer f.Close()
+	assert := assert.New(t)
 
 	e := RootElem(f)
+	id, err := varint.ReadVarInt(e.buf)
+	assert.Nil(err)
+	assert.Equal(0xa45dfa3, id)
 
-	if id, err := varint.ReadVarInt(e.buf); err != nil {
-		t.Fatal(err)
-	} else if id != 0x0a45dfa3 {
-		t.Fatalf("id isn't right: %x", id)
-	}
-
-	if size, err := varint.ReadVarInt(e.buf); err != nil {
-		t.Fatal(err)
-	} else if size != 0x23 {
-		t.Fatalf("id isn't right: %x", size)
-	}
-
+	size, err := varint.ReadVarInt(e.buf)
+	assert.Nil(err)
+	assert.Equal(0x23, size)
 }

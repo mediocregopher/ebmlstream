@@ -4,6 +4,7 @@ import (
 	"math"
 	"strings"
 	. "testing"
+	"github.com/stretchr/testify/assert"
 )
 
 func testRangeTok(t *T, typ Type, rangeStr string, expected *rangeParam) {
@@ -14,26 +15,10 @@ func testRangeTok(t *T, typ Type, rangeStr string, expected *rangeParam) {
 	}
 
 	out, err := parseRangeParams(typ, toks)
-	if err != nil {
-		t.Fatalf("'%s' %s", rangeStr, err)
-	}
 
-	outCur, expectedCur := out, expected
-	for i := 0; ; i++ {
-		outMore, expectedMore := outCur.more, expectedCur.more
-		outCur.more, expectedCur.more = nil, nil
-
-		if *outCur != *expectedCur {
-			t.Fatalf("'%s' gave %#v for '%s'", rangeStr, outCur, rparts[i])
-		}
-		if outMore == nil && expectedMore == nil {
-			return
-		}
-		if outMore == nil || expectedMore == nil {
-			t.Fatalf("'%s' gave %#v for '%s'", rangeStr, outCur, rparts[i])
-		}
-		outCur, expectedCur = outMore, expectedMore
-	}
+	assert := assert.New(t)
+	assert.Nil(err)
+	assert.Equal(expected, out)
 }
 
 func TestIntRanges(t *T) {
