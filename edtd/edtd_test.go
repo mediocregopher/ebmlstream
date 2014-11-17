@@ -67,6 +67,21 @@ var implicitEBML = &tplElement{
 	},
 }
 
+var implicitCRC32 = &tplElement{
+	id: 0x43,
+	typ: Container,
+	name: "CRC32",
+	card: zeroOrMore,
+	kids: []tplElement{
+		{
+			id: 0x2fe,
+			typ: Binary,
+			name: "CRC32Value",
+			size: 4,
+		},
+	},
+}
+
 var implicitVoid = &tplElement{
 	id: 0x6c,
 	typ: Binary,
@@ -80,6 +95,9 @@ func TestParseImplicitHeader(t *T) {
 
 	ebml := i[elementID(0xa45dfa3)]
 	assert.Equal(t, implicitEBML, ebml)
+
+	crc32 := i[elementID(0x43)]
+	assert.Equal(t, implicitCRC32, crc32)
 
 	void := i[elementID(0x6c)]
 	assert.Equal(t, implicitVoid, void)

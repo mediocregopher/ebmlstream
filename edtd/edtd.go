@@ -44,6 +44,7 @@ type tplElement struct {
 	name string
 	kids []tplElement
 	def  []byte
+	size uint64
 	card
 	ranges *rangeParam
 }
@@ -66,11 +67,11 @@ var implicitHeader = `
        DocTypeReadVersion := 4285 uint [ def:1; ]
      }
  
-     //TODO this nonsense
-     //CRC32 := c3 container [ level:1..; card:*; ] {
-     //  %children;
-     //  CRC32Value := 42fe binary [ size:4; ]
-     //}
+     CRC32 := c3 container [ level:1..; card:*; ] {
+       %children;
+       CRC32Value := 42fe binary [ size:4; ]
+     }
+
      Void  := ec binary [ level:1..; card:*; ]
    }
 `
@@ -78,6 +79,7 @@ var implicitHeader = `
 var (
 	defineTok    = token{alphaNum, "define"}
 	elementsTok  = token{alphaNum, "elements"}
+	childrenTok  = token{alphaNum, "children"}
 	assignTok    = token{control, ":="}
 	openCurlyTok = token{control, "{"}
 	colonTok     = token{control, ":"}
@@ -159,6 +161,14 @@ func parseElement(lex *lexer, m elementIndex) (tplElement, error, bool) {
 		return tplElement{}, err, false
 	} else if nameTok.typ == control && nameTok.val == "}" {
 		return tplElement{}, nil, true
+	} else if nameTok.val == "%" {
+		if _, err = expect(lex, &childrenTok); err != nil {
+			return tplElement{}, err, false
+		}
+		if _, err = expect(lex, &semiColonTok); err != nil {
+			return tplElement{}, err, false
+		}
+		return parseElement(lex, m)
 	} else if nameTok.typ != alphaNum {
 		return tplElement{}, fmt.Errorf("unexpected '%s' found", nameTok), false
 	}
@@ -319,6 +329,13 @@ func parseParam(lex *lexer, elem *tplElement) (error, bool) {
 		if _, err := expect(lex, &semiColonTok); err != nil {
 			return err, false
 		}
+	case "size":
+		if err := parseSizeParam(elem, pvalTok); err != nil {
+			return err, false
+		}
+		if _, err := expect(lex, &semiColonTok); err != nil {
+			return err, false
+		}
 	case "range":
 		// Ranges can have multiple values, each separated by a comma
 		rangeToks := append(make([]*token, 0, 2), pvalTok)
@@ -418,6 +435,15 @@ func setDefData(elem *tplElement, d interface{}) error {
 		elem.def = b
 		return nil
 	}
+}
+
+func parseSizeParam(elem *tplElement, pvalTok *token) error {
+	i, err := strconv.ParseUint(pvalTok.val, 10, 64)
+	if err != nil {
+		return err
+	}
+	elem.size = i
+	return nil
 }
 
 func defDataBytes(d interface{}) ([]byte, error) {
