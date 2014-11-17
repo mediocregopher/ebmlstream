@@ -275,7 +275,7 @@ func parseParams(lex *lexer, elem *tplElement) error {
 	for {
 		err, done := parseParam(lex, elem)
 		if err != nil {
-			return nil
+			return err
 		} else if done {
 			return nil
 		}
@@ -299,7 +299,7 @@ func parseParam(lex *lexer, elem *tplElement) (error, bool) {
 		return err, false
 	}
 
-	pvalTok, err := expectType(lex, alphaNum, quotedString)
+	pvalTok, err := expectType(lex, alphaNum, quotedString, control)
 	if err != nil {
 		return err, false
 	}
@@ -341,6 +341,10 @@ func parseParam(lex *lexer, elem *tplElement) (error, bool) {
 			return err, false
 		}
 		elem.ranges = rangeParams
+	default:
+		if _, err = expect(lex, &semiColonTok); err != nil {
+			return err, false
+		}
 	}
 
 	return nil, false
@@ -369,19 +373,19 @@ func parseDefParam(lex *lexer, elem *tplElement, pvalTok *token) error {
 		if err != nil {
 			return err
 		}
-		return setDefDataRaw(elem, &i)
+		return setDefData(elem, &i)
 	case Uint:
 		i, err := strconv.ParseUint(pvalTok.val, 10, 64)
 		if err != nil {
 			return err
 		}
-		return setDefDataRaw(elem, &i)
+		return setDefData(elem, &i)
 	case Float:
 		f, err := strconv.ParseFloat(pvalTok.val, 64)
 		if err != nil {
 			return err
 		}
-		return setDefDataRaw(elem, &f)
+		return setDefData(elem, &f)
 	case String, Binary:
 		if pvalTok.val[:2] == "0x" {
 			s, err := hex.DecodeString(pvalTok.val[2:])
@@ -407,11 +411,19 @@ func parseDefParam(lex *lexer, elem *tplElement, pvalTok *token) error {
 	}
 }
 
-func setDefDataRaw(elem *tplElement, d interface{}) error {
+func setDefData(elem *tplElement, d interface{}) error {
+	if b, err := defDataBytes(d); err != nil {
+		return err
+	} else {
+		elem.def = b
+		return nil
+	}
+}
+
+func defDataBytes(d interface{}) ([]byte, error) {
 	buf := bytes.NewBuffer(make([]byte, 0, 8))
 	if err := binary.Write(buf, binary.BigEndian, d); err != nil {
-		return err
+		return nil, err
 	}
-	elem.def = buf.Bytes()
-	return nil
+	return buf.Bytes(), nil
 }
