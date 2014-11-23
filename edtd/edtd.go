@@ -47,6 +47,7 @@ type tplElement struct {
 	size uint64
 	card
 	ranges *rangeParam
+	mustMatchDef bool
 }
 
 // Parser is generated from an edtd specification. It will read in streams of
@@ -55,30 +56,33 @@ type Parser struct {
 	elementIndex
 }
 
-var implicitHeader = `
-   define elements {
-     EBML := 1a45dfa3 container [ card:+; ] {
-       EBMLVersion := 4286 uint [ def:1; ]
-       EBMLReadVersion := 42f7 uint [ def:1; ]
-       EBMLMaxIDLength := 42f2 uint [ def:4; ]
-       EBMLMaxSizeLength := 42f3 uint [ def:8; ]
-       DocType := 4282 string [ range:32..126; ]
-       DocTypeVersion := 4287 uint [ def:1; ]
-       DocTypeReadVersion := 4285 uint [ def:1; ]
-     }
- 
-     CRC32 := c3 container [ level:1..; card:*; ] {
-       %children;
-       CRC32Value := 42fe binary [ size:4; ]
-     }
+var implicitElements = `
+    EBML := 1a45dfa3 container [ card:+; ] {
+      EBMLVersion := 4286 uint [ def:1; ]
+      EBMLReadVersion := 42f7 uint [ def:1; ]
+      EBMLMaxIDLength := 42f2 uint [ def:4; ]
+      EBMLMaxSizeLength := 42f3 uint [ def:8; ]
+      DocType := 4282 string [ range:32..126; ]
+      DocTypeVersion := 4287 uint [ def:1; ]
+      DocTypeReadVersion := 4285 uint [ def:1; ]
+    }
 
-     Void  := ec binary [ level:1..; card:*; ]
-   }
+    CRC32 := c3 container [ level:1..; card:*; ] {
+      %children;
+      CRC32Value := 42fe binary [ size:4; ]
+    }
+
+    Void  := ec binary [ level:1..; card:*; ]
+
+// Closing curly brace is a hack to get parseElements to stop
+}
 `
 
 var (
 	defineTok    = token{alphaNum, "define"}
+	declareTok   = token{alphaNum, "declare"}
 	elementsTok  = token{alphaNum, "elements"}
+	headerTok    = token{alphaNum, "header"}
 	childrenTok  = token{alphaNum, "children"}
 	assignTok    = token{control, ":="}
 	openCurlyTok = token{control, "{"}
@@ -115,11 +119,16 @@ func parseAsRoot(r io.Reader) (elementIndex, error) {
 	lex := newLexer(r)
 	m := elementIndex{}
 
-	if _, err := expect(lex, &defineTok); err != nil {
+	implicitBuf := bytes.NewBufferString(implicitElements)
+	if _, err := parseElements(newLexer(implicitBuf), m); err != nil {
 		return nil, err
 	}
 
-	defWhat, err := expect(lex, &elementsTok)
+	if _, err := expect(lex, &defineTok, &declareTok); err != nil {
+		return nil, err
+	}
+
+	defWhat, err := expect(lex, &elementsTok, &headerTok)
 	if err != nil {
 		return nil, err
 	}
@@ -131,6 +140,11 @@ func parseAsRoot(r io.Reader) (elementIndex, error) {
 	switch defWhat.val {
 	case "elements":
 		if _, err := parseElements(lex, m); err != nil {
+			return nil, err
+		}
+	
+	case "header":
+		if err := parseHeader(lex, m); err != nil {
 			return nil, err
 		}
 	}
@@ -323,7 +337,7 @@ func parseParam(lex *lexer, elem *tplElement) (error, bool) {
 			return err, false
 		}
 	case "def":
-		if err := parseDefParam(lex, elem, pvalTok); err != nil {
+		if err := parseDefParam(elem, pvalTok); err != nil {
 			return err, false
 		}
 		if _, err := expect(lex, &semiColonTok); err != nil {
@@ -383,7 +397,7 @@ func parseCardParam(lex *lexer, elem *tplElement, pvalTok *token) error {
 	return nil
 }
 
-func parseDefParam(lex *lexer, elem *tplElement, pvalTok *token) error {
+func parseDefParam(elem *tplElement, pvalTok *token) error {
 	switch elem.typ {
 	case Int:
 		i, err := strconv.ParseInt(pvalTok.val, 10, 64)

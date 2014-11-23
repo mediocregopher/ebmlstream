@@ -89,8 +89,10 @@ var implicitVoid = &tplElement{
 	card: zeroOrMore,
 }
 
-func TestParseImplicitHeader(t *T) {
-	i, err := parseAsRoot(bytes.NewBufferString(implicitHeader))
+func TestParseImplicitElements(t *T) {
+	i := elementIndex{}
+	lex := newLexer(bytes.NewBufferString(implicitElements))
+	_, err := parseElements(lex, i)
 	assert.Nil(t, err)
 
 	ebml := i[elementID(0xa45dfa3)]
