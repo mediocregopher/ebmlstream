@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func parseHeader(lex *lexer, m elementIndex) error {
+func parseHeader(lex *lexer, m elementMap) error {
 	for {
 		err, done := parseHeaderElement(lex, m)
 		if err != nil {
@@ -15,7 +15,7 @@ func parseHeader(lex *lexer, m elementIndex) error {
 	}
 }
 
-func parseHeaderElement(lex *lexer, m elementIndex) (error, bool) {
+func parseHeaderElement(lex *lexer, m elementMap) (error, bool) {
 	nameTok, err := expectType(lex, alphaNum, control)
 	if nameTok.val == "}" {
 		return nil, true

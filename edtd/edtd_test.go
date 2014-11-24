@@ -2,8 +2,10 @@ package edtd
 
 import (
 	"bytes"
+	"fmt"
 	. "testing"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TODO this needs tests
@@ -90,17 +92,61 @@ var implicitVoid = &tplElement{
 }
 
 func TestParseImplicitElements(t *T) {
-	i := elementIndex{}
+	m := elementMap{}
+	tm := typesMap{}
 	lex := newLexer(bytes.NewBufferString(implicitElements))
-	_, err := parseElements(lex, i)
-	assert.Nil(t, err)
+	_, err := parseElements(lex, m, tm, false)
+	require.Nil(t, err)
 
-	ebml := i[elementID(0xa45dfa3)]
+	ebml := m[elementID(0xa45dfa3)]
 	assert.Equal(t, implicitEBML, ebml)
 
-	crc32 := i[elementID(0x43)]
+	crc32 := m[elementID(0x43)]
 	assert.Equal(t, implicitCRC32, crc32)
 
-	void := i[elementID(0x6c)]
+	void := m[elementID(0x6c)]
 	assert.Equal(t, implicitVoid, void)
+}
+
+func TestParseTypes(t *T) {
+
+	test := `
+        define types {
+            bool := uint [ range:0..1; ]
+            ascii := string [ range:32..126; ]
+        }
+
+        define elements {
+		    Foo := 53ab bool [ def:1; ]
+			Bar := 53ac bool [ card:?; ]
+		}
+	`
+
+	m, err := parseAsRoot(bytes.NewBufferString(test))
+	require.Nil(t, err)
+
+	boolRange := &rangeParam{
+		lowerui: 0,
+		upperui: 1,
+	}
+
+	fmt.Println(m)
+
+	foo := &tplElement{
+		id: 0x13ab,
+		typ: Uint,
+		name: "Foo",
+		def: mustDefDataBytes(uint64(1)),
+		ranges: boolRange,
+	}
+	assert.Equal(t, foo, m[0x13ab])
+
+	bar := &tplElement{
+		id: 0x13ac,
+		typ: Uint,
+		name: "Bar",
+		card: zeroOrOnce,
+		ranges: boolRange,
+	}
+	assert.Equal(t, bar, m[0x13ac])
 }

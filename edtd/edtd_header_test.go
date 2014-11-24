@@ -4,6 +4,7 @@ import (
 	"bytes"
 	. "testing"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHeaders(t *T) {
@@ -15,7 +16,7 @@ func TestHeaders(t *T) {
         }`
 
 	m, err := parseAsRoot(bytes.NewBufferString(test))
-	assert.Nil(t, err)
+	require.Nil(t, err)
 
 	assert.Equal(t, m[0x282].def, []byte("matroska"))
 	assert.Equal(t, m[0x282].mustMatchDef, true)

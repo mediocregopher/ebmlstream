@@ -35,7 +35,8 @@ const (
 
 type (
 	elementID    int64
-	elementIndex map[elementID]*tplElement
+	elementMap map[elementID]*tplElement
+	typesMap   map[string]*tplElement
 )
 
 type tplElement struct {
@@ -53,7 +54,7 @@ type tplElement struct {
 // Parser is generated from an edtd specification. It will read in streams of
 // ebml data and attempt to parse them based on its edtd.
 type Parser struct {
-	elementIndex
+	elements elementMap
 }
 
 var implicitElements = `
@@ -80,9 +81,10 @@ var implicitElements = `
 
 var (
 	defineTok    = token{alphaNum, "define"}
-	declareTok   = token{alphaNum, "declare"}
 	elementsTok  = token{alphaNum, "elements"}
 	headerTok    = token{alphaNum, "header"}
+	typesTok     = token{alphaNum, "types"}
+	declareTok   = token{alphaNum, "declare"}
 	childrenTok  = token{alphaNum, "children"}
 	assignTok    = token{control, ":="}
 	openCurlyTok = token{control, "{"}
@@ -115,46 +117,81 @@ func expectType(lex *lexer, typ ...tokentyp) (*token, error) {
 	return nil, fmt.Errorf("unexpected token '%s' found", nextTok)
 }
 
-func parseAsRoot(r io.Reader) (elementIndex, error) {
+func parseAsRoot(r io.Reader) (elementMap, error) {
 	lex := newLexer(r)
-	m := elementIndex{}
+	m := elementMap{}
+	t := typesMap{}
 
 	implicitBuf := bytes.NewBufferString(implicitElements)
-	if _, err := parseElements(newLexer(implicitBuf), m); err != nil {
+	if _, err := parseElements(newLexer(implicitBuf), m, t, false); err != nil {
 		return nil, err
 	}
 
-	if _, err := expect(lex, &defineTok, &declareTok); err != nil {
-		return nil, err
-	}
+	for {
+		defdecTok := lex.next()
+		if defdecTok.typ == eof {
+			return m, nil
+		} else if defdecTok.val != "declare" && defdecTok.val != "define" {
+			return nil, fmt.Errorf("unexpected token '%s' found", defdecTok)
+		}
 
-	defWhat, err := expect(lex, &elementsTok, &headerTok)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err = expect(lex, &openCurlyTok); err != nil {
-		return nil, err
-	}
-
-	switch defWhat.val {
-	case "elements":
-		if _, err := parseElements(lex, m); err != nil {
+		defWhat, err := expect(lex, &elementsTok, &headerTok, &typesTok)
+		if err != nil {
 			return nil, err
 		}
-	
-	case "header":
-		if err := parseHeader(lex, m); err != nil {
+
+		if _, err := expect(lex, &openCurlyTok); err != nil {
 			return nil, err
 		}
+
+		switch defWhat.val {
+		case "elements":
+			if _, err := parseElements(lex, m, t, false); err != nil {
+				return nil, err
+			}
+
+		case "header":
+			if err := parseHeader(lex, m); err != nil {
+				return nil, err
+			}
+
+		case "types":
+			if err := parseTypes(lex, t); err != nil {
+				return nil, err
+			}
+
+		default:
+
+		}
 	}
-	return m, nil
 }
 
-func parseElements(lex *lexer, m elementIndex) ([]tplElement, error) {
+// Basically the same as parseElements, but we read into the typesMap which
+// indexes by the name instead of the id
+func parseTypes(lex *lexer, t typesMap) error {
+	fakem := elementMap{}
+	elems, err := parseElements(lex, fakem, t, true)
+	if err != nil {
+		return err
+	}
+
+	for i := range elems {
+		name := strings.ToLower(elems[i].name)
+		t[name] = &elems[i]
+	}
+	return nil
+}
+
+// dontExpectId is used by parseTypes, which parses exactly like parseElements
+// except that there are no ids
+func parseElements(
+	lex *lexer, m elementMap, t typesMap, dontExpectId bool,
+) (
+	[]tplElement, error,
+) {
 	elems := make([]tplElement, 0, 8)
 	for {
-		elem, err, done := parseElement(lex, m)
+		elem, err, done := parseElement(lex, m, t, dontExpectId)
 		if err != nil {
 			return nil, err
 		} else if done {
@@ -169,7 +206,11 @@ func parseElements(lex *lexer, m elementIndex) ([]tplElement, error) {
 // handles running into a closing curly brace (the end of the container). In
 // thise case it returns the third argument as true and doesn't parse anything
 // out
-func parseElement(lex *lexer, m elementIndex) (tplElement, error, bool) {
+func parseElement(
+	lex *lexer, m elementMap, t typesMap, dontExpectId bool,
+) (
+	tplElement, error, bool,
+) {
 	nameTok := lex.next()
 	if err := nameTok.asError(); err != nil {
 		return tplElement{}, err, false
@@ -182,7 +223,7 @@ func parseElement(lex *lexer, m elementIndex) (tplElement, error, bool) {
 		if _, err = expect(lex, &semiColonTok); err != nil {
 			return tplElement{}, err, false
 		}
-		return parseElement(lex, m)
+		return parseElement(lex, m, t, dontExpectId)
 	} else if nameTok.typ != alphaNum {
 		return tplElement{}, fmt.Errorf("unexpected '%s' found", nameTok), false
 	}
@@ -191,14 +232,19 @@ func parseElement(lex *lexer, m elementIndex) (tplElement, error, bool) {
 		return tplElement{}, err, false
 	}
 
-	idTok, err := expectType(lex, alphaNum)
-	if err != nil {
-		return tplElement{}, err, false
-	}
+	var id elementID
+	if dontExpectId {
+		id = 0
+	} else {
+		idTok, err := expectType(lex, alphaNum)
+		if err != nil {
+			return tplElement{}, err, false
+		}
 
-	id, err := strToID(idTok.val)
-	if err != nil {
-		return tplElement{}, err, false
+		id, err = strToID(idTok.val)
+		if err != nil {
+			return tplElement{}, err, false
+		}
 	}
 
 	typTok, err := expectType(lex, alphaNum)
@@ -206,16 +252,19 @@ func parseElement(lex *lexer, m elementIndex) (tplElement, error, bool) {
 		return tplElement{}, err, false
 	}
 
-	typ, err := strToType(typTok.val)
-	if err != nil {
-		return tplElement{}, err, false
+	var elem tplElement
+	if typ, ok := strToType(typTok.val); ok {
+		elem = tplElement{
+			id:   id,
+			typ:  typ,
+			name: nameTok.val,
+		}
+	} else if typTpl, ok := t[strings.ToLower(typTok.val)]; ok {
+		elem = *typTpl
+		elem.id = id
+		elem.name = nameTok.val
 	}
 
-	elem := tplElement{
-		id:   id,
-		typ:  typ,
-		name: nameTok.val,
-	}
 	m[elem.id] = &elem
 
 	controlTok, err := expectType(lex, control)
@@ -252,7 +301,7 @@ func parseElement(lex *lexer, m elementIndex) (tplElement, error, bool) {
 		}
 	}
 
-	kids, err := parseElements(lex, m)
+	kids, err := parseElements(lex, m, t, dontExpectId)
 	if err != nil {
 		return elem, err, false
 	}
@@ -274,24 +323,25 @@ func strToID(s string) (elementID, error) {
 	return elementID(i), err
 }
 
-func strToType(s string) (Type, error) {
+func strToType(s string) (Type, bool) {
 	switch strings.ToLower(s) {
 	case "int":
-		return Int, nil
+		return Int, true
 	case "uint":
-		return Uint, nil
+		return Uint, true
 	case "float":
-		return Float, nil
+		return Float, true
 	case "string":
-		return String, nil
+		return String, true
 	case "date":
-		return Date, nil
+		return Date, true
 	case "binary":
-		return Binary, nil
+		return Binary, true
 	case "container":
-		return Container, nil
+		return Container, true
 	default:
-		return 0, fmt.Errorf("unknown type '%s'", s)
+		return 0, false
+		//return 0, fmt.Errorf("unknown type '%s'", s)
 	}
 }
 
