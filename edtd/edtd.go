@@ -34,7 +34,7 @@ const (
 )
 
 type (
-	elementID    int64
+	elementID  int64
 	elementMap map[elementID]*tplElement
 	typesMap   map[string]*tplElement
 )
@@ -47,7 +47,7 @@ type tplElement struct {
 	def  []byte
 	size uint64
 	card
-	ranges *rangeParam
+	ranges       *rangeParam
 	mustMatchDef bool
 }
 

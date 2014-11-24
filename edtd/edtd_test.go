@@ -3,9 +3,9 @@ package edtd
 import (
 	"bytes"
 	"fmt"
-	. "testing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	. "testing"
 )
 
 // TODO this needs tests
@@ -19,65 +19,65 @@ func mustDefDataBytes(d interface{}) []byte {
 
 // This is what implicitHeader should parse to
 var implicitEBML = &tplElement{
-	id: 0xa45dfa3,
-	typ: Container,
+	id:   0xa45dfa3,
+	typ:  Container,
 	name: "EBML",
 	card: oneOrMore,
 	kids: []tplElement{
 		{
-			id: 0x286,
-			typ: Uint,
+			id:   0x286,
+			typ:  Uint,
 			name: "EBMLVersion",
-			def: mustDefDataBytes(uint64(1)),
+			def:  mustDefDataBytes(uint64(1)),
 		},
 		{
-			id: 0x2f7,
-			typ: Uint,
+			id:   0x2f7,
+			typ:  Uint,
 			name: "EBMLReadVersion",
-			def: mustDefDataBytes(uint64(1)),
+			def:  mustDefDataBytes(uint64(1)),
 		},
 		{
-			id: 0x2f2,
-			typ: Uint,
+			id:   0x2f2,
+			typ:  Uint,
 			name: "EBMLMaxIDLength",
-			def: mustDefDataBytes(uint64(4)),
+			def:  mustDefDataBytes(uint64(4)),
 		},
 		{
-			id: 0x2f3,
-			typ: Uint,
+			id:   0x2f3,
+			typ:  Uint,
 			name: "EBMLMaxSizeLength",
-			def: mustDefDataBytes(uint64(8)),
+			def:  mustDefDataBytes(uint64(8)),
 		},
 		{
-			id: 0x282,
-			typ: String,
-			name: "DocType",
+			id:     0x282,
+			typ:    String,
+			name:   "DocType",
 			ranges: &rangeParam{loweri: 32, upperi: 126},
 		},
 		{
-			id: 0x287,
-			typ: Uint,
+			id:   0x287,
+			typ:  Uint,
 			name: "DocTypeVersion",
-			def: mustDefDataBytes(uint64(1)),
+			def:  mustDefDataBytes(uint64(1)),
 		},
 		{
-			id: 0x285,
-			typ: Uint,
+			id:   0x285,
+			typ:  Uint,
 			name: "DocTypeReadVersion",
-			def: mustDefDataBytes(uint64(1)),
+			def:  mustDefDataBytes(uint64(1)),
 		},
 	},
 }
 
 var implicitCRC32 = &tplElement{
-	id: 0x43,
-	typ: Container,
+	id:   0x43,
+	typ:  Container,
 	name: "CRC32",
 	card: zeroOrMore,
 	kids: []tplElement{
 		{
-			id: 0x2fe,
-			typ: Binary,
+			id:   0x2fe,
+			typ:  Binary,
 			name: "CRC32Value",
 			size: 4,
 		},
@@ -85,8 +85,8 @@ var implicitCRC32 = &tplElement{
 }
 
 var implicitVoid = &tplElement{
-	id: 0x6c,
-	typ: Binary,
+	id:   0x6c,
+	typ:  Binary,
 	name: "Void",
 	card: zeroOrMore,
 }
@@ -133,19 +133,19 @@ func TestParseTypes(t *T) {
 	fmt.Println(m)
 
 	foo := &tplElement{
-		id: 0x13ab,
-		typ: Uint,
-		name: "Foo",
-		def: mustDefDataBytes(uint64(1)),
+		id:     0x13ab,
+		typ:    Uint,
+		name:   "Foo",
+		def:    mustDefDataBytes(uint64(1)),
 		ranges: boolRange,
 	}
 	assert.Equal(t, foo, m[0x13ab])
 
 	bar := &tplElement{
-		id: 0x13ac,
-		typ: Uint,
-		name: "Bar",
-		card: zeroOrOnce,
+		id:     0x13ac,
+		typ:    Uint,
+		name:   "Bar",
+		card:   zeroOrOnce,
 		ranges: boolRange,
 	}
 	assert.Equal(t, bar, m[0x13ac])
