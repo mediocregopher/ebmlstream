@@ -2,7 +2,6 @@ package edtd
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	. "testing"
@@ -122,15 +121,13 @@ func TestParseTypes(t *T) {
 		}
 	`
 
-	m, err := parseAsRoot(bytes.NewBufferString(test))
+	e, err := NewEdtd(bytes.NewBufferString(test))
 	require.Nil(t, err)
 
 	boolRange := &rangeParam{
 		lowerui: 0,
 		upperui: 1,
 	}
-
-	fmt.Println(m)
 
 	foo := &tplElement{
 		id:     0x13ab,
@@ -139,7 +136,7 @@ func TestParseTypes(t *T) {
 		def:    mustDefDataBytes(uint64(1)),
 		ranges: boolRange,
 	}
-	assert.Equal(t, foo, m[0x13ab])
+	assert.Equal(t, foo, e.elements[0x13ab])
 
 	bar := &tplElement{
 		id:     0x13ac,
@@ -148,5 +145,5 @@ func TestParseTypes(t *T) {
 		card:   zeroOrOnce,
 		ranges: boolRange,
 	}
-	assert.Equal(t, bar, m[0x13ac])
+	assert.Equal(t, bar, e.elements[0x13ac])
 }

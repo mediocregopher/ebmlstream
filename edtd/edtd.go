@@ -51,10 +51,12 @@ type tplElement struct {
 	mustMatchDef bool
 }
 
-// Parser is generated from an edtd specification. It will read in streams of
-// ebml data and attempt to parse them based on its edtd.
-type Parser struct {
+// Edtd is generated from an edtd specification. It can be used to generate one
+// or more Parsers, which will read in streams of ebml data and attempt to parse
+// them based on this edtd
+type Edtd struct {
 	elements elementMap
+	types    typesMap
 }
 
 var implicitElements = `
@@ -117,7 +119,10 @@ func expectType(lex *lexer, typ ...tokentyp) (*token, error) {
 	return nil, fmt.Errorf("unexpected token '%s' found", nextTok)
 }
 
-func parseAsRoot(r io.Reader) (elementMap, error) {
+// Will read from the io.Reader until EOF, creating an internal structure for
+// understanding ebml streams which conform to the edtd read in
+func NewEdtd(r io.Reader) (*Edtd, error) {
+
 	lex := newLexer(r)
 	m := elementMap{}
 	t := typesMap{}
@@ -130,7 +135,7 @@ func parseAsRoot(r io.Reader) (elementMap, error) {
 	for {
 		defdecTok := lex.next()
 		if defdecTok.typ == eof {
-			return m, nil
+			return &Edtd{m, t}, nil
 		} else if defdecTok.val != "declare" && defdecTok.val != "define" {
 			return nil, fmt.Errorf("unexpected token '%s' found", defdecTok)
 		}

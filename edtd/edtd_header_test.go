@@ -15,12 +15,12 @@ func TestHeaders(t *T) {
             EBMLVersion := 1;
         }`
 
-	m, err := parseAsRoot(bytes.NewBufferString(test))
+	e, err := NewEdtd(bytes.NewBufferString(test))
 	require.Nil(t, err)
 
-	assert.Equal(t, m[0x282].def, []byte("matroska"))
-	assert.Equal(t, m[0x282].mustMatchDef, true)
+	assert.Equal(t, e.elements[0x282].def, []byte("matroska"))
+	assert.Equal(t, e.elements[0x282].mustMatchDef, true)
 
-	assert.Equal(t, m[0x286].def, mustDefDataBytes(uint64(1)))
-	assert.Equal(t, m[0x286].mustMatchDef, true)
+	assert.Equal(t, e.elements[0x286].def, mustDefDataBytes(uint64(1)))
+	assert.Equal(t, e.elements[0x286].mustMatchDef, true)
 }
