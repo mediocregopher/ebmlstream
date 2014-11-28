@@ -40,12 +40,13 @@ type (
 )
 
 type tplElement struct {
-	id   elementID
-	typ  Type
-	name string
-	kids []tplElement
-	def  []byte
-	size uint64
+	id     elementID
+	typ    Type
+	name   string
+	kids   []tplElement
+	parent *tplElement
+	def    []byte
+	size   uint64
 	card
 	ranges       *rangeParam
 	mustMatchDef bool
@@ -151,7 +152,7 @@ func NewEdtd(r io.Reader) (*Edtd, error) {
 
 		switch defWhat.val {
 		case "elements":
-			if _, err := parseElements(lex, m, t, false); err != nil {
+			if _, err = parseElements(lex, m, t, false); err != nil {
 				return nil, err
 			}
 
@@ -309,6 +310,9 @@ func parseElement(
 	kids, err := parseElements(lex, m, t, dontExpectId)
 	if err != nil {
 		return elem, err, false
+	}
+	for i := range kids {
+		kids[i].parent = &elem
 	}
 	elem.kids = kids
 
