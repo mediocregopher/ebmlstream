@@ -72,8 +72,7 @@ func TestLexer(t *T) {
 		{control, "["},
 		{alphaNum, "range"},
 		{control, ":"},
-		{control, ">"},
-		{alphaNum, "0.0"},
+		{alphaNum, ">0.0"},
 		{control, ";"},
 		{control, "]"},
 

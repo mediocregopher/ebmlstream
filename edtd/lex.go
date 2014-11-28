@@ -165,7 +165,7 @@ func lexWhitespace(l *lexer) lexerFunc {
 		return lexColon
 	} else if r == '"' {
 		return lexQuotedString
-	} else if unicode.IsLetter(r) || unicode.IsNumber(r) {
+	} else if allowedAlphaNum[r] || unicode.IsLetter(r) || unicode.IsNumber(r) {
 		return lexAlphaNum
 	} else {
 		l.emit(control)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"math"
 	. "testing"
 )
 
@@ -157,4 +158,30 @@ func TestParseTypes(t *T) {
 		ranges: boolRange,
 	}
 	assert.Equal(t, bar, e.elements[0x13ac])
+}
+
+func TestParseFloatRange(t *T) {
+	test := `
+        define elements {
+		    Foo := 53ab float [ def:1; range:>0.0 ]
+		}
+	`
+
+	e, err := NewEdtd(bytes.NewBufferString(test))
+	require.Nil(t, err)
+
+	foo := &tplElement{
+		id:  0x13ab,
+		typ: Float,
+		name: "Foo",
+		def: mustDefDataBytes(float64(1)),
+		ranges: &rangeParam{
+			lowerf: 0.0,
+			upperf: math.MaxFloat64,
+			exLower: true,
+			exUpper: true,
+		},
+	}
+
+	assert.Equal(t, foo, e.elements[0x13ab])
 }

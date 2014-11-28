@@ -412,25 +412,27 @@ func parseParam(lex *lexer, elem *tplElement) (error, bool) {
 	case "range":
 		// Ranges can have multiple values, each separated by a comma
 		rangeToks := append(make([]*token, 0, 2), pvalTok)
+		var hitSquare bool
 		for {
-			controlTok, err := expect(lex, &semiColonTok, &commaTok)
-			if err != nil {
-				return err, false
-			}
-			if controlTok.val == ";" {
+			tok := lex.next()
+			if tok.val == ";" {
 				break
-			}
-			pvalTok, err = expectType(lex, alphaNum)
-			if err != nil {
+			} else if tok.val == "]" {
+				hitSquare = true
+				break
+			} else if err := tok.asError(); err != nil {
 				return err, false
 			}
-			rangeToks = append(rangeToks, pvalTok)
+			rangeToks = append(rangeToks, tok)
 		}
 		rangeParams, err := parseRangeParams(elem.typ, rangeToks)
 		if err != nil {
 			return err, false
 		}
 		elem.ranges = rangeParams
+		if hitSquare {
+			return nil, true
+		}
 	default:
 		if _, err = expect(lex, &semiColonTok); err != nil {
 			return err, false
