@@ -44,12 +44,22 @@ func (p *Parser) NextShallow() (*Elem, error) {
 		return nil, fmt.Errorf("unknown id: %x", e.Id)
 	}
 
-	// If the element isn't a Container we call Bytes to force the ebml parser
-	// to read in the body of the element and store it in the Elem's buffer
-	if etpl.typ != Container {
-		if _, err := e.Bytes(); err != nil {
-			return nil, err
-		}
+	switch etpl.typ {
+	case Int:
+		_, err = e.Int()
+	case Uint:
+		_, err = e.Uint()
+	case Float:
+		_, err = e.Float()
+	case Date:
+		_, err = e.Date()
+	case String:
+		_, err = e.String()
+	case Binary:
+		_, err = e.Bytes()
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	p.lastElem = e

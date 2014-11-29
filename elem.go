@@ -80,7 +80,8 @@ func (e *Elem) Int() (int64, error) {
 func (e *Elem) Uint() (uint64, error) {
 	if e.Size == 0 {
 		return 0, nil
-	} else if err := e.fillBuffer(8); err != nil {
+	}
+	if err := e.fillBuffer(8); err != nil {
 		return 0, err
 	}
 
@@ -110,11 +111,28 @@ func (e *Elem) Date() (time.Time, error) {
 func (e *Elem) Float() (float64, error) {
 	if e.Size == 0 {
 		return 0, nil
+	} else if e.Size == 4 {
+		f, err := e.f32()
+		return float64(f), err
 	} else if err := e.fillBuffer(8); err != nil {
 		return 0, err
 	}
 
 	var ret float64
+	buf := bytes.NewBuffer(e.Data)
+	if err := binary.Read(buf, binary.BigEndian, &ret); err != nil {
+		return 0, err
+	}
+
+	return ret, nil
+}
+
+func (e *Elem) f32() (float32, error) {
+	if err := e.fillBuffer(4); err != nil {
+		return 0, err
+	}
+
+	var ret float32
 	buf := bytes.NewBuffer(e.Data)
 	if err := binary.Read(buf, binary.BigEndian, &ret); err != nil {
 		return 0, err

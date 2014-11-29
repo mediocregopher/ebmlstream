@@ -458,24 +458,26 @@ func parseCardParam(lex *lexer, elem *tplElement, pvalTok *token) error {
 	return nil
 }
 
+// the default can be a reference to another field (which would just be a
+// string). I ignore the default in this case, cause fuck it
 func parseDefParam(elem *tplElement, pvalTok *token) error {
 	switch elem.typ {
 	case Int:
 		i, err := strconv.ParseInt(pvalTok.val, 10, 64)
 		if err != nil {
-			return err
+			return nil
 		}
 		return setDefData(elem, &i)
 	case Uint:
 		i, err := strconv.ParseUint(pvalTok.val, 10, 64)
 		if err != nil {
-			return err
+			return nil
 		}
 		return setDefData(elem, &i)
 	case Float:
 		f, err := strconv.ParseFloat(pvalTok.val, 64)
 		if err != nil {
-			return err
+			return nil
 		}
 		return setDefData(elem, &f)
 	case String, Binary:
@@ -488,7 +490,7 @@ func parseDefParam(elem *tplElement, pvalTok *token) error {
 			return nil
 		}
 		if pvalTok.typ != quotedString {
-			return fmt.Errorf("quoted string expected")
+			return nil
 		}
 		s, err := strconv.Unquote(pvalTok.val)
 		if err != nil {
