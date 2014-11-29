@@ -3,11 +3,7 @@ package ebml
 import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
-	"io"
-	"os"
 	. "testing"
-
-	"github.com/mediocregopher/go.ebml/varint"
 )
 
 func sb(bs ...byte) string {
@@ -55,27 +51,4 @@ func TestStringElem(t *T) {
 		assert.Nil(err, "input: %x", in)
 		assert.Equal(out, i, "input: %x", in)
 	}
-}
-
-func getTestFile(t *T) io.ReadCloser {
-	f, err := os.Open("test.webm")
-	if err != nil {
-		t.Fatal(err)
-	}
-	return f
-}
-
-func TestFile1(t *T) {
-	f := getTestFile(t)
-	defer f.Close()
-	assert := assert.New(t)
-
-	e := RootElem(f)
-	id, err := varint.ReadVarInt(e.buf)
-	assert.Nil(err)
-	assert.Equal(0xa45dfa3, id)
-
-	size, err := varint.ReadVarInt(e.buf)
-	assert.Nil(err)
-	assert.Equal(0x23, size)
 }
