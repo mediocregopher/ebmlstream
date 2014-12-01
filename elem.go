@@ -13,10 +13,10 @@ import (
 type Elem struct {
 	r   io.Reader
 	buf *bufio.Reader
+	data []byte
 
 	Id   int64
 	Size int64
-	Data []byte
 }
 
 func RootElem(r io.Reader) *Elem {
@@ -46,12 +46,12 @@ func (e *Elem) Next() (*Elem, error) {
 }
 
 func (e *Elem) fillBuffer(total int64) error {
-	if e.Data == nil {
+	if e.data == nil {
 		if total == -1 {
 			total = e.Size
 		}
-		e.Data = make([]byte, total)
-		n, err := io.ReadFull(e.buf, e.Data[total-e.Size:])
+		e.data = make([]byte, total)
+		n, err := io.ReadFull(e.buf, e.data[total-e.Size:])
 		if int64(n) == e.Size {
 			return nil
 		} else if err != nil {
@@ -69,7 +69,7 @@ func (e *Elem) Int() (int64, error) {
 	}
 
 	var ret int64
-	buf := bytes.NewBuffer(e.Data)
+	buf := bytes.NewBuffer(e.data)
 	if err := binary.Read(buf, binary.BigEndian, &ret); err != nil {
 		return 0, err
 	}
@@ -86,7 +86,7 @@ func (e *Elem) Uint() (uint64, error) {
 	}
 
 	var ret uint64
-	buf := bytes.NewBuffer(e.Data)
+	buf := bytes.NewBuffer(e.data)
 	if err := binary.Read(buf, binary.BigEndian, &ret); err != nil {
 		return 0, err
 	}
@@ -119,7 +119,7 @@ func (e *Elem) Float() (float64, error) {
 	}
 
 	var ret float64
-	buf := bytes.NewBuffer(e.Data)
+	buf := bytes.NewBuffer(e.data)
 	if err := binary.Read(buf, binary.BigEndian, &ret); err != nil {
 		return 0, err
 	}
@@ -133,7 +133,7 @@ func (e *Elem) f32() (float32, error) {
 	}
 
 	var ret float32
-	buf := bytes.NewBuffer(e.Data)
+	buf := bytes.NewBuffer(e.data)
 	if err := binary.Read(buf, binary.BigEndian, &ret); err != nil {
 		return 0, err
 	}
@@ -148,7 +148,7 @@ func (e *Elem) String() (string, error) {
 		return "", err
 	}
 
-	buf := bytes.NewBuffer(e.Data)
+	buf := bytes.NewBuffer(e.data)
 	ret, err := buf.ReadString(0)
 	if err != nil {
 		return ret, nil
@@ -164,5 +164,5 @@ func (e *Elem) Bytes() ([]byte, error) {
 		return nil, err
 	}
 
-	return e.Data, nil
+	return e.data, nil
 }
