@@ -7,7 +7,6 @@
 package varint
 
 import (
-	"bufio"
 	"bytes"
 	"io"
 )
@@ -22,19 +21,17 @@ func numPrecedingZeros(b byte) byte {
 	return 8
 }
 
+func readByte(r io.Reader) (byte, error) {
+	b := make([]byte, 1)
+	_, err := io.ReadFull(r, b)
+	return b[0], err
+}
+
 // Reads a variable integer from the given reader, reading only as many bytes as
 // necessary
-//
-// TODO don't use a bufio.Buffer, we only need a readByte method
 func ReadVarInt(r io.Reader) (int64, error) {
-	var buf *bufio.Reader
-	if b, ok := r.(*bufio.Reader); ok {
-		buf = b
-	} else {
-		buf = bufio.NewReader(r)
-	}
 
-	b, err := buf.ReadByte()
+	b, err := readByte(r)
 	if err != nil {
 		return 0, err
 	}
@@ -42,7 +39,7 @@ func ReadVarInt(r io.Reader) (int64, error) {
 	rem := numPrecedingZeros(b)
 	ret := int64(b & (0xFF >> (rem + 1)))
 	for ; rem > 0; rem-- {
-		b, err = buf.ReadByte()
+		b, err = readByte(r)
 		if err != nil {
 			return 0, err
 		}
