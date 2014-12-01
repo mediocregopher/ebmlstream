@@ -49,7 +49,7 @@ func main() {
 			thing, err = el.Float()
 			line = fmt.Sprintf("%s - %f", prefix, thing)
 		case edtd.String:
-			thing, err = el.String()
+			thing, err = el.Str()
 			line = fmt.Sprintf("%s - %s", prefix, thing)
 		default:
 			line = prefix

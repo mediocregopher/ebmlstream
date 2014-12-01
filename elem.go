@@ -141,7 +141,7 @@ func (e *Elem) f32() (float32, error) {
 	return ret, nil
 }
 
-func (e *Elem) String() (string, error) {
+func (e *Elem) Str() (string, error) {
 	if e.Size == 0 {
 		return "", nil
 	} else if err := e.fillBuffer(-1); err != nil {

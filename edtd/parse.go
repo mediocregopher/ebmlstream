@@ -54,7 +54,7 @@ func (p *Parser) Next() (*Elem, error) {
 	case Date:
 		_, err = e.Date()
 	case String:
-		_, err = e.String()
+		_, err = e.Str()
 	case Binary:
 		_, err = e.Bytes()
 	}

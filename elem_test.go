@@ -47,7 +47,7 @@ func TestStringElem(t *T) {
 		e, err := RootElem(bytes.NewBuffer(b)).Next()
 		assert.Nil(err, "input: %x", in)
 
-		i, err := e.String()
+		i, err := e.Str()
 		assert.Nil(err, "input: %x", in)
 		assert.Equal(out, i, "input: %x", in)
 	}
