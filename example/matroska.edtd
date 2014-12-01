@@ -146,6 +146,7 @@ define elements {
         CueTrackPositions := b7 container [ card:*; ] {
           CueTrack := f7 uint [ range:1..; ]
           CueClusterPosition := f1 uint;
+          CueRelativePosition := f0 uint;
           CueBlockNumber := 5378 uint [ range:1..; def:1; ]
           CueCodecState := ea uint [ def:0; ]
           CueReference := db container [ card:*; ] {
