@@ -34,6 +34,7 @@ func TestParseImplicitElements(t *T) {
 			name:   "EBMLVersion",
 			def:    mustDefDataBytes(uint64(1)),
 			parent: implicitEBML,
+			level:  1,
 		},
 		{
 			id:     0x2f7,
@@ -41,6 +42,7 @@ func TestParseImplicitElements(t *T) {
 			name:   "EBMLReadVersion",
 			def:    mustDefDataBytes(uint64(1)),
 			parent: implicitEBML,
+			level:  1,
 		},
 		{
 			id:     0x2f2,
@@ -48,6 +50,7 @@ func TestParseImplicitElements(t *T) {
 			name:   "EBMLMaxIDLength",
 			def:    mustDefDataBytes(uint64(4)),
 			parent: implicitEBML,
+			level:  1,
 		},
 		{
 			id:     0x2f3,
@@ -55,6 +58,7 @@ func TestParseImplicitElements(t *T) {
 			name:   "EBMLMaxSizeLength",
 			def:    mustDefDataBytes(uint64(8)),
 			parent: implicitEBML,
+			level:  1,
 		},
 		{
 			id:     0x282,
@@ -62,6 +66,7 @@ func TestParseImplicitElements(t *T) {
 			name:   "DocType",
 			ranges: &rangeParam{loweri: 32, upperi: 126},
 			parent: implicitEBML,
+			level:  1,
 		},
 		{
 			id:     0x287,
@@ -69,6 +74,7 @@ func TestParseImplicitElements(t *T) {
 			name:   "DocTypeVersion",
 			def:    mustDefDataBytes(uint64(1)),
 			parent: implicitEBML,
+			level:  1,
 		},
 		{
 			id:     0x285,
@@ -76,6 +82,7 @@ func TestParseImplicitElements(t *T) {
 			name:   "DocTypeReadVersion",
 			def:    mustDefDataBytes(uint64(1)),
 			parent: implicitEBML,
+			level:  1,
 		},
 	}
 
@@ -93,6 +100,7 @@ func TestParseImplicitElements(t *T) {
 			name:   "CRC32Value",
 			size:   4,
 			parent: implicitCRC32,
+			level:  1,
 		},
 	}
 
@@ -106,7 +114,7 @@ func TestParseImplicitElements(t *T) {
 	m := elementMap{}
 	tm := typesMap{}
 	lex := newLexer(bytes.NewBufferString(implicitElements))
-	_, err := parseElements(lex, m, tm, false)
+	_, err := parseElements(lex, m, tm, 0, false)
 	require.Nil(t, err)
 
 	ebml := m[elementID(0xa45dfa3)]
@@ -171,13 +179,13 @@ func TestParseFloatRange(t *T) {
 	require.Nil(t, err)
 
 	foo := &tplElement{
-		id:  0x13ab,
-		typ: Float,
+		id:   0x13ab,
+		typ:  Float,
 		name: "Foo",
-		def: mustDefDataBytes(float64(1)),
+		def:  mustDefDataBytes(float64(1)),
 		ranges: &rangeParam{
-			lowerf: 0.0,
-			upperf: math.MaxFloat64,
+			lowerf:  0.0,
+			upperf:  math.MaxFloat64,
 			exLower: true,
 			exUpper: true,
 		},

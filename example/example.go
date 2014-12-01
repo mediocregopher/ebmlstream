@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/mediocregopher/go.ebml/edtd"
 )
@@ -20,7 +21,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	f, err := os.Open("test.webm")
+	f, err := os.Open(os.Args[1])
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,7 +34,8 @@ func main() {
 			log.Fatal(err)
 		}
 
-		prefix := fmt.Sprintf("%x %d %s", el.Id, el.Elem.Size, el.Name)
+		tabs := strings.Repeat("\t", int(el.Level))
+		prefix := fmt.Sprintf("%s %x %d %s", tabs, el.Id, el.Elem.Size, el.Name)
 		var line string
 		var thing interface{}
 		switch el.Type {

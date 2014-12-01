@@ -17,8 +17,9 @@ type Parser struct {
 type Elem struct {
 	ebml.Elem
 	Type
-	Name string
-	Kids []*Elem
+	Name  string
+	Kids  []*Elem
+	Level uint64
 }
 
 func (e *Edtd) NewParser(r io.Reader) *Parser {
@@ -65,9 +66,10 @@ func (p *Parser) NextShallow() (*Elem, error) {
 	p.lastElem = e
 
 	return &Elem{
-		Elem: *e,
-		Type: etpl.typ,
-		Name: etpl.name,
+		Elem:  *e,
+		Type:  etpl.typ,
+		Name:  etpl.name,
+		Level: etpl.level,
 	}, nil
 }
 
@@ -98,6 +100,6 @@ func (p *Parser) NextShallow() (*Elem, error) {
 //			return nil, fmt.Errorf("unknown id: %x", kid.Id)
 //		}
 //
-//		
+//
 //	}
 //}

@@ -47,6 +47,7 @@ type tplElement struct {
 	parent *tplElement
 	def    []byte
 	size   uint64
+	level  uint64
 	card
 	ranges       *rangeParam
 	mustMatchDef bool
@@ -129,7 +130,8 @@ func NewEdtd(r io.Reader) (*Edtd, error) {
 	t := typesMap{}
 
 	implicitBuf := bytes.NewBufferString(implicitElements)
-	if _, err := parseElements(newLexer(implicitBuf), m, t, false); err != nil {
+	_, err := parseElements(newLexer(implicitBuf), m, t, 0, false)
+	if err != nil {
 		return nil, err
 	}
 
@@ -152,7 +154,7 @@ func NewEdtd(r io.Reader) (*Edtd, error) {
 
 		switch defWhat.val {
 		case "elements":
-			if _, err = parseElements(lex, m, t, false); err != nil {
+			if _, err = parseElements(lex, m, t, 0, false); err != nil {
 				return nil, err
 			}
 
@@ -176,7 +178,7 @@ func NewEdtd(r io.Reader) (*Edtd, error) {
 // indexes by the name instead of the id
 func parseTypes(lex *lexer, t typesMap) error {
 	fakem := elementMap{}
-	elems, err := parseElements(lex, fakem, t, true)
+	elems, err := parseElements(lex, fakem, t, 0, true)
 	if err != nil {
 		return err
 	}
@@ -191,13 +193,13 @@ func parseTypes(lex *lexer, t typesMap) error {
 // dontExpectId is used by parseTypes, which parses exactly like parseElements
 // except that there are no ids
 func parseElements(
-	lex *lexer, m elementMap, t typesMap, dontExpectId bool,
+	lex *lexer, m elementMap, t typesMap, level uint64, dontExpectId bool,
 ) (
 	[]tplElement, error,
 ) {
 	elems := make([]tplElement, 0, 8)
 	for {
-		elem, err, done := parseElement(lex, m, t, dontExpectId)
+		elem, err, done := parseElement(lex, m, t, level, dontExpectId)
 		if err != nil {
 			return nil, err
 		} else if done {
@@ -213,7 +215,7 @@ func parseElements(
 // thise case it returns the third argument as true and doesn't parse anything
 // out
 func parseElement(
-	lex *lexer, m elementMap, t typesMap, dontExpectId bool,
+	lex *lexer, m elementMap, t typesMap, level uint64, dontExpectId bool,
 ) (
 	tplElement, error, bool,
 ) {
@@ -229,7 +231,7 @@ func parseElement(
 		if _, err = expect(lex, &semiColonTok); err != nil {
 			return tplElement{}, err, false
 		}
-		return parseElement(lex, m, t, dontExpectId)
+		return parseElement(lex, m, t, level, dontExpectId)
 	} else if nameTok.typ != alphaNum {
 		return tplElement{}, fmt.Errorf("unexpected '%s' found", nameTok), false
 	}
@@ -261,9 +263,10 @@ func parseElement(
 	var elem tplElement
 	if typ, ok := strToType(typTok.val); ok {
 		elem = tplElement{
-			id:   id,
-			typ:  typ,
-			name: nameTok.val,
+			id:    id,
+			typ:   typ,
+			name:  nameTok.val,
+			level: level,
 		}
 	} else if typTpl, ok := t[strings.ToLower(typTok.val)]; ok {
 		elem = *typTpl
@@ -307,7 +310,7 @@ func parseElement(
 		}
 	}
 
-	kids, err := parseElements(lex, m, t, dontExpectId)
+	kids, err := parseElements(lex, m, t, level+1, dontExpectId)
 	if err != nil {
 		return elem, err, false
 	}
