@@ -111,7 +111,7 @@ define elements {
           SamplingFrequency := b5 float [ range:>0.0; def:8000.0; ]
           OutputSamplingFrequency := 78b5 float [ range:>0.0;
                                                   def:8000.0; ]
-          Channels := 94 uint [ range:1..; def:1; ]
+          Channels := 9f uint [ range:1..; def:1; ]
           ChannelPositions := 7d7b binary;
           BitDepth := 6264 uint [ range:1..; ]
         }
