@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/mediocregopher/go.ebml/edtd"
+	"github.com/mediocregopher/ebmlstream/edtd"
 )
 
 func main() {

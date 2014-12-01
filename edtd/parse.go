@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"io"
 
-	ebml "github.com/mediocregopher/go.ebml"
+	"github.com/mediocregopher/ebmlstream"
 )
 
 type Parser struct {
 	edtd     *Edtd
-	lastElem *ebml.Elem
+	lastElem *ebmlstream.Elem
 	buffer   *list.List
 }
 
 type Elem struct {
-	ebml.Elem
+	ebmlstream.Elem
 	Type
 	Name  string
 	Level uint64
@@ -24,7 +24,7 @@ type Elem struct {
 func (e *Edtd) NewParser(r io.Reader) *Parser {
 	return &Parser{
 		edtd:     e,
-		lastElem: ebml.RootElem(r),
+		lastElem: ebmlstream.RootElem(r),
 		buffer:   list.New(),
 	}
 }

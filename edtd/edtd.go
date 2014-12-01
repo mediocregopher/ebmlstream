@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mediocregopher/go.ebml/varint"
+	"github.com/mediocregopher/ebmlstream/varint"
 )
 
 type Type int

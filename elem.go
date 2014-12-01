@@ -1,4 +1,4 @@
-package ebml
+package ebmlstream
 
 import (
 	"bufio"
@@ -7,7 +7,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/mediocregopher/go.ebml/varint"
+	"github.com/mediocregopher/ebmlstream/varint"
 )
 
 type Elem struct {

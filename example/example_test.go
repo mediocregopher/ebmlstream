@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 	. "testing"
 
-	"github.com/mediocregopher/go.ebml/edtd"
+	"github.com/mediocregopher/ebmlstream/edtd"
 )
 
 var exampleFiles = []string{
