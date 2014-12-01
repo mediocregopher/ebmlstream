@@ -18,7 +18,6 @@ type Elem struct {
 	ebml.Elem
 	Type
 	Name  string
-	Kids  []*Elem
 	Level uint64
 }
 
@@ -30,7 +29,7 @@ func (e *Edtd) NewParser(r io.Reader) *Parser {
 	}
 }
 
-func (p *Parser) NextShallow() (*Elem, error) {
+func (p *Parser) Next() (*Elem, error) {
 	if f := p.buffer.Front(); f != nil {
 		return p.buffer.Remove(f).(*Elem), nil
 	}
@@ -72,34 +71,3 @@ func (p *Parser) NextShallow() (*Elem, error) {
 		Level: etpl.level,
 	}, nil
 }
-
-//func (p *Parser) Next() (*Elem, error) {
-//	el, err := p.NextShallow()
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	if el.Type != Container {
-//		return el, nil
-//	}
-//
-//	parentTPL := p.edtd.elements[elementID(el.Elem.Id)]
-//	el.Kids = make([]*Elem, 0, len(parentTPL.kids))
-//	if len(parentTPL.kids) == 0 {
-//		return el, nil
-//	}
-//
-//	for {
-//		kid, err := p.lastElem.Next()
-//		if err != nil {
-//			return nil, err
-//		}
-//
-//		etpl, ok := p.edtd.elements[elementID(kid.Id)]
-//		if !ok {
-//			return nil, fmt.Errorf("unknown id: %x", kid.Id)
-//		}
-//
-//
-//	}
-//}

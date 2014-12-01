@@ -29,7 +29,7 @@ func main() {
 	log.Println("starting parswer for test.webm")
 	p := e.NewParser(f)
 	for {
-		el, err := p.NextShallow()
+		el, err := p.Next()
 		if err != nil {
 			log.Fatal(err)
 		}

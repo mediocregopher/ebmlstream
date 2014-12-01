@@ -20,111 +20,90 @@ func mustDefDataBytes(d interface{}) []byte {
 // This is what implicitHeader should parse to
 
 func TestParseImplicitElements(t *T) {
-	implicitEBML := &tplElement{
-		id:   0xa45dfa3,
-		typ:  Container,
-		name: "EBML",
-		card: oneOrMore,
-	}
-
-	implicitEBML.kids = []tplElement{
-		{
-			id:     0x286,
-			typ:    Uint,
-			name:   "EBMLVersion",
-			def:    mustDefDataBytes(uint64(1)),
-			parent: implicitEBML,
-			level:  1,
+	implicitM := elementMap{
+		0xa45dfa3: {
+			id:   0xa45dfa3,
+			typ:  Container,
+			name: "EBML",
+			card: oneOrMore,
 		},
-		{
-			id:     0x2f7,
-			typ:    Uint,
-			name:   "EBMLReadVersion",
-			def:    mustDefDataBytes(uint64(1)),
-			parent: implicitEBML,
-			level:  1,
+		0x286: {
+			id:    0x286,
+			typ:   Uint,
+			name:  "EBMLVersion",
+			def:   mustDefDataBytes(uint64(1)),
+			level: 1,
 		},
-		{
-			id:     0x2f2,
-			typ:    Uint,
-			name:   "EBMLMaxIDLength",
-			def:    mustDefDataBytes(uint64(4)),
-			parent: implicitEBML,
-			level:  1,
+		0x2f7: {
+			id:    0x2f7,
+			typ:   Uint,
+			name:  "EBMLReadVersion",
+			def:   mustDefDataBytes(uint64(1)),
+			level: 1,
 		},
-		{
-			id:     0x2f3,
-			typ:    Uint,
-			name:   "EBMLMaxSizeLength",
-			def:    mustDefDataBytes(uint64(8)),
-			parent: implicitEBML,
-			level:  1,
+		0x2f2: {
+			id:    0x2f2,
+			typ:   Uint,
+			name:  "EBMLMaxIDLength",
+			def:   mustDefDataBytes(uint64(4)),
+			level: 1,
 		},
-		{
+		0x2f3: {
+			id:    0x2f3,
+			typ:   Uint,
+			name:  "EBMLMaxSizeLength",
+			def:   mustDefDataBytes(uint64(8)),
+			level: 1,
+		},
+		0x282: {
 			id:     0x282,
 			typ:    String,
 			name:   "DocType",
 			ranges: &rangeParam{loweri: 32, upperi: 126},
-			parent: implicitEBML,
 			level:  1,
 		},
-		{
-			id:     0x287,
-			typ:    Uint,
-			name:   "DocTypeVersion",
-			def:    mustDefDataBytes(uint64(1)),
-			parent: implicitEBML,
-			level:  1,
+		0x287: {
+			id:    0x287,
+			typ:   Uint,
+			name:  "DocTypeVersion",
+			def:   mustDefDataBytes(uint64(1)),
+			level: 1,
 		},
-		{
-			id:     0x285,
-			typ:    Uint,
-			name:   "DocTypeReadVersion",
-			def:    mustDefDataBytes(uint64(1)),
-			parent: implicitEBML,
-			level:  1,
+		0x285: {
+			id:    0x285,
+			typ:   Uint,
+			name:  "DocTypeReadVersion",
+			def:   mustDefDataBytes(uint64(1)),
+			level: 1,
+		},
+
+		// CRC32
+		0x43: {
+			id:   0x43,
+			typ:  Container,
+			name: "CRC32",
+			card: zeroOrMore,
+		},
+		0x2fe: {
+			id:    0x2fe,
+			typ:   Binary,
+			name:  "CRC32Value",
+			size:  4,
+			level: 1,
+		},
+
+		// Void
+		0x6c: {
+			id:   0x6c,
+			typ:  Binary,
+			name: "Void",
+			card: zeroOrMore,
 		},
 	}
 
-	implicitCRC32 := &tplElement{
-		id:   0x43,
-		typ:  Container,
-		name: "CRC32",
-		card: zeroOrMore,
-	}
-
-	implicitCRC32.kids = []tplElement{
-		{
-			id:     0x2fe,
-			typ:    Binary,
-			name:   "CRC32Value",
-			size:   4,
-			parent: implicitCRC32,
-			level:  1,
-		},
-	}
-
-	implicitVoid := &tplElement{
-		id:   0x6c,
-		typ:  Binary,
-		name: "Void",
-		card: zeroOrMore,
-	}
-
-	m := elementMap{}
-	tm := typesMap{}
-	lex := newLexer(bytes.NewBufferString(implicitElements))
-	_, err := parseElements(lex, m, tm, 0, false)
+	e, err := NewEdtd(bytes.NewBufferString(""))
 	require.Nil(t, err)
-
-	ebml := m[elementID(0xa45dfa3)]
-	assert.Equal(t, implicitEBML, ebml)
-
-	crc32 := m[elementID(0x43)]
-	assert.Equal(t, implicitCRC32, crc32)
-
-	void := m[elementID(0x6c)]
-	assert.Equal(t, implicitVoid, void)
+	assert.Equal(t, implicitM, e.elements)
 }
 
 func TestParseTypes(t *T) {
