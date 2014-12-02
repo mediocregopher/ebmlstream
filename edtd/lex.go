@@ -50,11 +50,14 @@ var (
 	errInvalidUTF8 = errors.New("invalid utf8 character")
 )
 
+type lexerFunc func(*lexer) lexerFunc
+
 // lexer reads through an io.Reader and emits tokens from it.
 type lexer struct {
 	r      *bufio.Reader
 	outbuf *bytes.Buffer
 	ch     chan *token
+	state  lexerFunc
 }
 
 // newLexer constructs a new lexer struct and returns it. r is internally
@@ -70,29 +73,25 @@ func newLexer(r io.Reader) *lexer {
 
 	l := lexer{
 		r:      br,
-		ch:     make(chan *token),
+		ch:     make(chan *token, 1),
 		outbuf: bytes.NewBuffer(make([]byte, 0, 1024)),
+		state:  lexWhitespace,
 	}
-
-	go l.spin()
 
 	return &l
-}
-
-func (l *lexer) spin() {
-	f := lexWhitespace
-	for {
-		f = f(l)
-		if f == nil {
-			return
-		}
-	}
 }
 
 // Returns the next available token. This method should not be called after any
 // Err or EOF tokens
 func (l *lexer) next() *token {
-	return <-l.ch
+	for {
+		select {
+		case t := <-l.ch:
+			return t
+		default:
+			l.state = l.state(l)
+		}
+	}
 }
 
 func (l *lexer) emit(t tokentyp) {
@@ -141,8 +140,6 @@ func (l *lexer) errf(format string, args ...interface{}) lexerFunc {
 	close(l.ch)
 	return nil
 }
-
-type lexerFunc func(*lexer) lexerFunc
 
 func lexWhitespace(l *lexer) lexerFunc {
 	r, err := l.readRune()
