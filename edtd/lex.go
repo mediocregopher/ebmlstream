@@ -1,6 +1,3 @@
-// The lex package implements a lexical reader which can take in any io.Reader.
-// It does not care about the meaning or logical validity of the tokens it
-// parses out, it simply does its job.
 package edtd
 
 import (

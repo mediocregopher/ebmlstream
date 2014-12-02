@@ -1,3 +1,10 @@
+// Reads edtd files in order to better understand ebml streams. Can generate a
+// parser which will return data about ebml elements like their name and
+// heirarchical level in the edtd tree.
+//
+// This package will *not* read in children of Container type elements
+// implicitely. When you read in a Container type you only read in that element,
+// all the children must be read in through subsequent calls to Next().
 package edtd
 
 import (
@@ -13,7 +20,6 @@ import (
 )
 
 type Type int
-
 const (
 	Int Type = iota
 	Uint
