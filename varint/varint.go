@@ -56,3 +56,49 @@ func VarInt(b []byte) (int64, error) {
 	buf := bytes.NewBuffer(b)
 	return ReadVarInt(buf)
 }
+
+func WriteVarInt(i int64, w io.Writer) (int, error) {
+
+	// Count the number of bits actually being used by the number
+	bits := 0
+	for ic := i; ; {
+		ic >>= 1
+		bits++
+		if ic == 0 {
+			break
+		}
+	}
+
+	// Find the number of bytes and nibbles the number uses. We round up using
+	// the cool addition hack
+	bytes := byte(bits + 7) / 8
+	nibbles := byte(bits + 3) / 4
+
+	// If the number looks like [0000 xxxx xxxx xxxx] we can stick the size bits
+	// in those first nibble, so we decrement the position they will be put in.
+	// Otherwise, we have to prepend an additional byte in the front, so we add
+	// to the bytes to account for the additional byte needing to be read
+	if nibbles % 2 != 0 {
+		nibbles--
+	} else {
+		bytes++
+	}
+
+	one := 0x80 >> (bytes - 1)
+	shifted := int64(one) << ((nibbles) * 4)
+	newI := i | shifted
+
+	out := make([]byte, 0, 8)
+	var foundData bool
+	for shift := byte(7); shift > 0; shift-- {
+		b := byte(newI >> (shift * 8))
+		if !foundData && b == 0 {
+			continue
+		}
+		foundData = true
+		out = append(out, b)
+	}
+	out = append(out, byte(newI))
+
+	return w.Write(out)
+}
