@@ -85,20 +85,23 @@ func (e *Elem) Next() (*Elem, error) {
 	}, nil
 }
 
-func (e *Elem) fillBuffer(total int64) error {
+func (e *Elem) fillBuffer() error {
 	if e.data == nil {
-		if total == -1 {
-			total = e.Size
-		}
-		e.data = make([]byte, total)
-		n, err := io.ReadFull(e.buf, e.data[total-e.Size:])
-		if int64(n) == e.Size {
-			return nil
-		} else if err != nil {
+		e.data = make([]byte, e.Size)
+		_, err := io.ReadFull(e.buf, e.data)
+		if err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// Returns a copy of b padded with zeros on the left so that it matches the
+// target size
+func leftPad(b []byte, targetSize int) []byte {
+	nb := make([]byte, targetSize)
+	copy(nb[targetSize-len(b):], b)
+	return nb
 }
 
 // Reads and returns the Elem's data as a signed integer. This can be called
@@ -106,12 +109,12 @@ func (e *Elem) fillBuffer(total int64) error {
 func (e *Elem) Int() (int64, error) {
 	if e.Size == 0 {
 		return 0, nil
-	} else if err := e.fillBuffer(8); err != nil {
+	} else if err := e.fillBuffer(); err != nil {
 		return 0, err
 	}
 
 	var ret int64
-	buf := bytes.NewBuffer(e.data)
+	buf := bytes.NewBuffer(leftPad(e.data, 8))
 	if err := binary.Read(buf, binary.BigEndian, &ret); err != nil {
 		return 0, err
 	}
@@ -125,12 +128,12 @@ func (e *Elem) Uint() (uint64, error) {
 	if e.Size == 0 {
 		return 0, nil
 	}
-	if err := e.fillBuffer(8); err != nil {
+	if err := e.fillBuffer(); err != nil {
 		return 0, err
 	}
 
 	var ret uint64
-	buf := bytes.NewBuffer(e.data)
+	buf := bytes.NewBuffer(leftPad(e.data, 8))
 	if err := binary.Read(buf, binary.BigEndian, &ret); err != nil {
 		return 0, err
 	}
@@ -162,12 +165,12 @@ func (e *Elem) Float() (float64, error) {
 	} else if e.Size == 4 {
 		f, err := e.f32()
 		return float64(f), err
-	} else if err := e.fillBuffer(8); err != nil {
+	} else if err := e.fillBuffer(); err != nil {
 		return 0, err
 	}
 
 	var ret float64
-	buf := bytes.NewBuffer(e.data)
+	buf := bytes.NewBuffer(leftPad(e.data, 8))
 	if err := binary.Read(buf, binary.BigEndian, &ret); err != nil {
 		return 0, err
 	}
@@ -176,12 +179,12 @@ func (e *Elem) Float() (float64, error) {
 }
 
 func (e *Elem) f32() (float32, error) {
-	if err := e.fillBuffer(4); err != nil {
+	if err := e.fillBuffer(); err != nil {
 		return 0, err
 	}
 
 	var ret float32
-	buf := bytes.NewBuffer(e.data)
+	buf := bytes.NewBuffer(leftPad(e.data, 8))
 	if err := binary.Read(buf, binary.BigEndian, &ret); err != nil {
 		return 0, err
 	}
@@ -194,7 +197,7 @@ func (e *Elem) f32() (float32, error) {
 func (e *Elem) Str() (string, error) {
 	if e.Size == 0 {
 		return "", nil
-	} else if err := e.fillBuffer(-1); err != nil {
+	} else if err := e.fillBuffer(); err != nil {
 		return "", err
 	}
 
@@ -212,9 +215,39 @@ func (e *Elem) Str() (string, error) {
 func (e *Elem) Bytes() ([]byte, error) {
 	if e.Size == 0 {
 		return []byte{}, nil
-	} else if err := e.fillBuffer(-1); err != nil {
+	} else if err := e.fillBuffer(); err != nil {
 		return nil, err
 	}
 
 	return e.data, nil
+}
+
+// Writes the Elem to the io.Writer as an ebml element. This will only write the
+// data portion of the Elem if one of the data methods has been called
+// previously. If the Elem is a container it's children will NOT be
+// automatically written
+func (e *Elem) WriteTo(w io.Writer) (int64, error) {
+	var total int64
+
+	i, err := varint.WriteVarInt(e.Id, w)
+	total += int64(i)
+	if err != nil {
+		return total, err
+	}
+
+	i, err = varint.WriteVarInt(e.Size, w)
+	total += int64(i)
+	if err != nil {
+		return total, err
+	}
+
+	if e.data != nil {
+		i, err = w.Write(e.data)
+		total += int64(i)
+		if err != nil {
+			return total, err
+		}
+	}
+
+	return total, nil
 }

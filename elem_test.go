@@ -32,6 +32,12 @@ func TestIntElem(t *T) {
 		ui, err := e.Uint()
 		assert.Nil(err, "input: %x", in)
 		assert.Exactly(uint64(out), ui, "input: %x", in)
+
+		wbuf := bytes.NewBuffer([]byte{})
+		i, err = e.WriteTo(wbuf)
+		assert.Nil(err, "input: %x", in)
+		assert.Equal(len(in), i, "input: %x", in)
+		assert.Exactly(in, wbuf.String(), "input: %x", in)
 	}
 }
 
@@ -47,8 +53,14 @@ func TestStringElem(t *T) {
 		e, err := RootElem(bytes.NewBuffer(b)).Next()
 		assert.Nil(err, "input: %x", in)
 
-		i, err := e.Str()
+		s, err := e.Str()
 		assert.Nil(err, "input: %x", in)
-		assert.Equal(out, i, "input: %x", in)
+		assert.Equal(out, s, "input: %x", in)
+
+		wbuf := bytes.NewBuffer([]byte{})
+		i, err := e.WriteTo(wbuf)
+		assert.Nil(err, "input: %x", in)
+		assert.Equal(len(in), i, "input: %x", in)
+		assert.Exactly(in, wbuf.String(), "input: %x", in)
 	}
 }
