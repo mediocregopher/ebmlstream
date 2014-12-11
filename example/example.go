@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/mediocregopher/ebmlstream/edtd"
+	"github.com/mediocregopher/ebmlstream/varint"
 )
 
 func main() {
@@ -34,8 +35,18 @@ func main() {
 			log.Fatal(err)
 		}
 
+		fid, err := varint.ToVarInt(el.Id)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fsize, err := varint.ToVarInt(el.Elem.Size)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		tabs := strings.Repeat("\t", int(el.Level))
-		prefix := fmt.Sprintf("%s %x %d %s", tabs, el.Id, el.Elem.Size, el.Name)
+		prefix := fmt.Sprintf("%s %x %d (%x) %s", tabs, fid, el.Elem.Size, fsize, el.Name)
 		var line string
 		var thing interface{}
 		switch el.Type {

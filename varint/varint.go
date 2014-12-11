@@ -102,3 +102,11 @@ func WriteVarInt(i int64, w io.Writer) (int, error) {
 
 	return w.Write(out)
 }
+
+func ToVarInt(i int64) ([]byte, error) {
+	buf := bytes.NewBuffer(make([]byte, 0, 8))
+	if _, err := WriteVarInt(i, buf); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
