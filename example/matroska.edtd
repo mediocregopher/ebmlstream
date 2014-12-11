@@ -96,6 +96,7 @@ define elements {
         Video := e0 container {
           FlagInterlaced := 9a uint [ range:0..1; def:0; ]
           StereoMode := 53b8 uint [ range:0..3; def:0; ]
+          AlphaMode := 53c0 uint;
           PixelWidth := b0 uint [ range:1..; ]
           PixelHeight := ba uint [ range:1..; ]
           DisplayWidth := 54b0 uint [ def:PixelWidth; ]
