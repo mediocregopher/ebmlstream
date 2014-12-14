@@ -26,38 +26,43 @@ func TestNumPrecedingZeros(t *T) {
 	}
 }
 
-func sb(bs ...byte) string {
-	b := make([]byte, 0, len(bs))
-	b = append(b, bs...)
-	return string(b)
+var m = map[VarInt]int64{
+	VarInt(0x81):               0x01,
+	VarInt(0xC1):               0x41,
+	VarInt(0x4121):             0x0121,
+	VarInt(0x53ac):             0x13ac,
+	VarInt(0x204121):           0x4121,
+	VarInt(0x234121):           0x034121,
+	VarInt(0x0321123456789a):   0x0121123456789a,
+	VarInt(0x014121123456789a): 0x4121123456789a,
 }
 
-var m = map[string]int64{
-	sb(0x81):                                           0x01,
-	sb(0xC1):                                           0x41,
-	sb(0x41, 0x21):                                     0x0121,
-	sb(0x53, 0xac):                                     0x13ac,
-	sb(0x20, 0x41, 0x21):                               0x4121,
-	sb(0x23, 0x41, 0x21):                               0x034121,
-	sb(0x03, 0x21, 0x12, 0x34, 0x56, 0x78, 0x9a):       0x0121123456789a,
-	sb(0x01, 0x41, 0x21, 0x12, 0x34, 0x56, 0x78, 0x9a): 0x4121123456789a,
-}
-
-func TestReadVarInt(t *T) {
-	assert := assert.New(t)
+func TestVarInt(t *T) {
 	for in, out := range m {
-		i, err := ReadVarInt(bytes.NewBuffer([]byte(in)))
-		assert.Nil(err, "input: 0x%x", in)
-		assert.Equal(out, i, "input: 0x%x", in)
+
+		// First we need a buffer filled with the encoded varint
+		buf := bytes.NewBuffer(make([]byte, 0, 8))
+		_, err := in.WriteTo(buf)
+		require.Nil(t, err, "input: 0x%x", in)
+
+		// Read the varint back off that buffer, to make sure it will be read
+		// properly
+		v, err := Read(buf)
+		require.Nil(t, err, "input: 0x%x", in)
+
+		// Make sure it's uint64 form is correct
+		i, err := v.Uint64()
+		require.Nil(t, err, "input: 0x%x", in)
+		assert.Equal(t, out, i, "input: 0x%x", in)
 	}
 }
 
-func TestWriteVarInt(t *T) {
-	assert := assert.New(t)
-	for out, in := range m {
-		w := bytes.NewBuffer([]byte{})
-		_, err := WriteVarInt(in, w)
-		require.Nil(t, err, "input: 0x%x", in)
-		assert.Equal(out, w.String(), "input 0x%x out 0x%x expected 0x%x", in, w.String(), out)
-	}
-}
+//func TestWriteVarInt(t *T) {
+//	assert := assert.New(t)
+//	for out, in := range m {
+//		w := bytes.NewBuffer([]byte{})
+//		_, err := VarInt(in).WriteTo(w)
+//		require.Nil(t, err, "input: 0x%x", in)
+//		assert.Equal(out, w.String(), "input 0x%x out 0x%x expected 0x%x", in, w.String(), out)
+//	}
+//}

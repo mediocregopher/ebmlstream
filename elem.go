@@ -48,8 +48,8 @@ type Elem struct {
 	buf *bufio.Reader
 	data []byte
 
-	Id   int64
-	Size int64
+	Id   varint.VarInt
+	Size varint.VarInt
 }
 
 // Returns an Elem which represents the start of an unread EBML stream. Next()
@@ -67,12 +67,12 @@ func RootElem(r io.Reader) *Elem {
 // called at least once. For container Elems (and the root Elem) this is the
 // only valid method which can be called
 func (e *Elem) Next() (*Elem, error) {
-	id, err := varint.ReadVarInt(e.buf)
+	id, err := varint.Read(e.buf)
 	if err != nil {
 		return nil, err
 	}
 
-	size, err := varint.ReadVarInt(e.buf)
+	size, err := varint.Read(e.buf)
 	if err != nil {
 		return nil, err
 	}
@@ -87,9 +87,12 @@ func (e *Elem) Next() (*Elem, error) {
 
 func (e *Elem) fillBuffer() error {
 	if e.data == nil {
-		e.data = make([]byte, e.Size)
-		_, err := io.ReadFull(e.buf, e.data)
+		size, err := e.Size.Uint64()
 		if err != nil {
+			return err
+		}
+		e.data = make([]byte, size)
+		if _, err = io.ReadFull(e.buf, e.data); err != nil {
 			return err
 		}
 	}
@@ -229,13 +232,13 @@ func (e *Elem) Bytes() ([]byte, error) {
 func (e *Elem) WriteTo(w io.Writer) (int64, error) {
 	var total int64
 
-	i, err := varint.WriteVarInt(e.Id, w)
+	i, err := e.Id.WriteTo(w)
 	total += int64(i)
 	if err != nil {
 		return total, err
 	}
 
-	i, err = varint.WriteVarInt(e.Size, w)
+	i, err = e.Size.WriteTo(w)
 	total += int64(i)
 	if err != nil {
 		return total, err

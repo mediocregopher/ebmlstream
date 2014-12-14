@@ -40,7 +40,7 @@ const (
 )
 
 type (
-	elementID  int64
+	elementID  varint.VarInt
 	elementMap map[elementID]*tplElement
 	typesMap   map[string]*tplElement
 )
@@ -332,7 +332,7 @@ func strToID(s string) (elementID, error) {
 	if err != nil {
 		return 0, err
 	}
-	i, err := varint.VarInt(b)
+	i, err := varint.Parse(b)
 	return elementID(i), err
 }
 

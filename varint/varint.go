@@ -8,8 +8,27 @@ package varint
 
 import (
 	"bytes"
+	"errors"
 	"io"
 )
+
+var (
+	IntegerTooBig = errors.New("integer too big")
+	InvalidVarInt = errors.New("invalid var int")
+)
+
+const (
+	// The largest unsigned integer which can be represented with the VarInt
+	// data type
+	MaxEncodable = uint64(0xffffffffffffff)
+
+	// The minimum and maximum raw varints which can exist. The represent
+	// MaxEncodable and 0, respectively
+	maxRaw = VarInt((MaxEncodable + 1) | MaxEncodable)
+	minRaw = VarInt(0x80)
+)
+
+type VarInt uint64
 
 func numPrecedingZeros(b byte) byte {
 	for i := byte(0); i < 8; i++ {
@@ -27,37 +46,42 @@ func readByte(r io.Reader) (byte, error) {
 	return b[0], err
 }
 
-// Reads a variable integer from the given reader, reading only as many bytes as
-// necessary
-func ReadVarInt(r io.Reader) (int64, error) {
-
+// Reads an encoded variable integer from the given reader, reading only as many
+// bytes as necessary. This will keep the VarInt exactly as it was read, even if
+// the form it was read in was not as compact as possible. Use Normalize() to
+// compact and existing VarInt
+func Read(r io.Reader) (VarInt, error) {
 	b, err := readByte(r)
 	if err != nil {
 		return 0, err
 	}
 
 	rem := numPrecedingZeros(b)
-	ret := int64(b & (0xFF >> (rem + 1)))
+	ret := uint64(b)
 	for ; rem > 0; rem-- {
 		b, err = readByte(r)
 		if err != nil {
 			return 0, err
 		}
-		ret = (ret << 8) | int64(b)
+		ret = (ret << 8) | uint64(b)
 	}
 
-	return ret, nil
+	return VarInt(ret), nil
 }
 
-// Reads a varint from the given slice of bytes. The slice of bytes must have
-// enough bytes to encompass the full varint, but having more bytes than
-// necessary is ok
-func VarInt(b []byte) (int64, error) {
+// Same as Read, but reads from an existing byte slice (without modifying the
+// slice) The slice of bytes must have enough bytes to encompass the full
+// varint, but having more bytes than necessary is ok
+func Parse(b []byte) (VarInt, error) {
 	buf := bytes.NewBuffer(b)
-	return ReadVarInt(buf)
+	return Read(buf)
 }
 
-func WriteVarInt(i int64, w io.Writer) (int, error) {
+// Encodes the given integer into the smallest possible VarInt
+func Encode(i uint64) (VarInt, error) {
+	if i > MaxEncodable {
+		return 0, IntegerTooBig
+	}
 
 	// Count the number of bits actually being used by the number
 	bits := byte(0)
@@ -83,23 +107,54 @@ func WriteVarInt(i int64, w io.Writer) (int, error) {
 	}
 
 	one := 0x80 >> (bytes - 1)
-	shifted := int64(one) << ((bytes - 1) * 8)
-	newI := i | shifted
+	shifted := uint64(one) << ((bytes - 1) * 8)
+	return VarInt(i | shifted), nil
+}
 
-	// newI is the encoded form of our number, now to write it to the io.Writer
-	// using the minimum number of bytes
-	out := make([]byte, 0, bytes)
-	for j := bytes - 1; j >= 0 && j < 255; j-- {
-		b := byte((newI >> (j * 8)) & 0xff)
+// Returns the unencoded form of the VarInt
+func (v VarInt) Uint64() (uint64, error) {
+	if v > maxRaw || v < minRaw {
+		return 0, InvalidVarInt
+	}
+	v64 := uint64(v)
+	ret := v64
+	for mask := ^uint64(0); ; mask >>= 1 {
+		ret &= mask
+		if ret != v64 {
+			return uint64(ret), nil
+		}
+	}
+}
+
+// Returns a VarInt of equivalent value to this one but in its most compact
+// form.
+func (v VarInt) Normalize() (VarInt, error) {
+	i, err := v.Uint64()
+	if err != nil {
+		return 0, err
+	}
+	return Encode(i)
+}
+
+// Writes the VarInt in its encoded form to the given io.Writer, implementing
+// the io.WriterTo interface
+func (v VarInt) WriteTo(w io.Writer) (int, error) {
+	if v > maxRaw || v < minRaw {
+		return 0, InvalidVarInt
+	}
+
+	out := make([]byte, 0, 8)
+	bytes := byte(1)
+	for thresh := VarInt(0xff); ; thresh = (thresh << 8) | thresh {
+		if v <= thresh {
+			break
+		}
+		bytes++
+	}
+
+	for i := bytes - 1; i >= 0 && i < 255; i-- {
+		b := byte((v >> (i * 8)) & 0xff)
 		out = append(out, b)
 	}
 	return w.Write(out)
-}
-
-func ToVarInt(i int64) ([]byte, error) {
-	buf := bytes.NewBuffer(make([]byte, 0, 8))
-	if _, err := WriteVarInt(i, buf); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
 }

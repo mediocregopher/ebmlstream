@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/mediocregopher/ebmlstream/edtd"
-	"github.com/mediocregopher/ebmlstream/varint"
 )
 
 func main() {
@@ -27,7 +26,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	log.Println("starting parswer for test.webm")
+	log.Printf("starting parswer for %s", os.Args[1])
 	p := e.NewParser(f)
 	for {
 		el, err := p.Next()
@@ -35,18 +34,16 @@ func main() {
 			log.Fatal(err)
 		}
 
-		fid, err := varint.ToVarInt(el.Id)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fsize, err := varint.ToVarInt(el.Elem.Size)
+		size64, err := el.Elem.Size.Uint64()
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		tabs := strings.Repeat("\t", int(el.Level))
-		prefix := fmt.Sprintf("%s %x %d (%x) %s", tabs, fid, el.Elem.Size, fsize, el.Name)
+		prefix := fmt.Sprintf(
+			"%s%s 0x%x [size: %d | 0x%x]",
+			tabs, el.Name, el.Elem.Id, size64, el.Elem.Size,
+		)
 		var line string
 		var thing interface{}
 		switch el.Type {
