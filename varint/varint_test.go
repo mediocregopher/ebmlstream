@@ -35,12 +35,12 @@ func sb(bs ...byte) string {
 var m = map[string]int64{
 	sb(0x81):                                           0x01,
 	sb(0xC1):                                           0x41,
-	sb(0x40, 0x01):                                     0x01,
 	sb(0x41, 0x21):                                     0x0121,
+	sb(0x53, 0xac):                                     0x13ac,
 	sb(0x20, 0x41, 0x21):                               0x4121,
 	sb(0x23, 0x41, 0x21):                               0x034121,
+	sb(0x03, 0x21, 0x12, 0x34, 0x56, 0x78, 0x9a):       0x0121123456789a,
 	sb(0x01, 0x41, 0x21, 0x12, 0x34, 0x56, 0x78, 0x9a): 0x4121123456789a,
-	sb(0x01, 0x01, 0x21, 0x12, 0x34, 0x56, 0x78, 0x9a): 0x0121123456789a,
 }
 
 func TestReadVarInt(t *T) {
@@ -54,15 +54,10 @@ func TestReadVarInt(t *T) {
 
 func TestWriteVarInt(t *T) {
 	assert := assert.New(t)
-	for _, in := range m {
+	for out, in := range m {
 		w := bytes.NewBuffer([]byte{})
 		_, err := WriteVarInt(in, w)
 		require.Nil(t, err, "input: 0x%x", in)
-
-		b := w.Bytes()
-		out, err := VarInt(b)
-		require.Nil(t, err, "input: 0x%x", in)
-
-		assert.Equal(in, out, "input 0x%x out; 0x%x", in, out)
+		assert.Equal(out, w.String(), "input 0x%x out 0x%x expected 0x%x", in, w.String(), out)
 	}
 }

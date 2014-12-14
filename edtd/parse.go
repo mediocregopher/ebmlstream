@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/mediocregopher/ebmlstream"
+	"github.com/mediocregopher/ebmlstream/varint"
 )
 
 // Parsers are generated from an Edtd using NewParser. They return sequential
@@ -56,7 +57,8 @@ func (p *Parser) Next() (*Elem, error) {
 
 	etpl, ok := p.edtd.elements[elementID(e.Id)]
 	if !ok {
-		return nil, fmt.Errorf("unknown id: %x", e.Id)
+		v, _ := varint.ToVarInt(e.Id)
+		return nil, fmt.Errorf("unknown id: %x", v)
 	}
 
 	switch etpl.typ {
