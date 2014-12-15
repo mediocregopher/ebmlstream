@@ -45,6 +45,10 @@ func TestVarInt(t *T) {
 		_, err := in.WriteTo(buf)
 		require.Nil(t, err, "input: 0x%x", in)
 
+		size, err := in.Size()
+		require.Nil(t, err, "input: 0x%x", in)
+		assert.Equal(t, buf.Len(), size, "input: 0x%x", in)
+
 		// Read the varint back off that buffer, to make sure it will be read
 		// properly
 		v, err := Read(buf)
@@ -56,13 +60,3 @@ func TestVarInt(t *T) {
 		assert.Equal(t, out, i, "input: 0x%x", in)
 	}
 }
-
-//func TestWriteVarInt(t *T) {
-//	assert := assert.New(t)
-//	for out, in := range m {
-//		w := bytes.NewBuffer([]byte{})
-//		_, err := VarInt(in).WriteTo(w)
-//		require.Nil(t, err, "input: 0x%x", in)
-//		assert.Equal(out, w.String(), "input 0x%x out 0x%x expected 0x%x", in, w.String(), out)
-//	}
-//}

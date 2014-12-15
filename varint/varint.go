@@ -126,6 +126,21 @@ func (v VarInt) Uint64() (uint64, error) {
 	}
 }
 
+// Returns the number of bytes the encoded form of this varint would take up if
+// written out
+func (v VarInt) Size() (int, error) {
+	if v > maxRaw || v < minRaw {
+		return 0, InvalidVarInt
+	}
+	mask := ^VarInt(0)
+	for i := byte(1); ; i++ {
+		mask <<= 8
+		if v & mask == 0 {
+			return int(i), nil
+		}
+	}
+}
+
 // Returns a VarInt of equivalent value to this one but in its most compact
 // form.
 func (v VarInt) Normalize() (VarInt, error) {
